@@ -1,260 +1,268 @@
 // src/lib/core/sceneFactory.ts
+import { SceneBuilder } from './sceneBuilder.js';
 import type { Scene, Choice, Skills, StateUpdate } from './types.js';
 
 export class SceneFactory {
-	private static createChoice(
-		text: string, 
-		nextScene: string, 
-		options: {
-			condition?: () => boolean;
-			skillRequirement?: { skill: keyof Skills; level: number };
-			goldCost?: number;
-			itemRequired?: string;
-			flagRequired?: string;
-		} = {}
-	): Choice {
-		const choice: Choice = { text, nextScene };
-		
-		if (options.condition) choice.condition = options.condition;
-		if (options.skillRequirement) choice.skillRequirement = options.skillRequirement;
-		if (options.goldCost) choice.goldCost = options.goldCost;
-		if (options.itemRequired) choice.itemRequired = options.itemRequired;
-		if (options.flagRequired) choice.flagRequired = options.flagRequired;
-		
-		return choice;
-	}
+  static create(id: string, title: string): SceneBuilder {
+    return new SceneBuilder(id, title);
+  }
 
-	static basic(text: string, nextScene: string): Choice {
-		return this.createChoice(text, nextScene);
-	}
+  static exploration(
+    id: string, 
+    title: string, 
+    description: string, 
+    destinations: Array<{ name: string; sceneId: string; requirement?: () => boolean }>,
+    reward?: StateUpdate
+  ): Scene {
+    const builder = this.create(id, title)
+      .description(description)
+      .category('exploration');
 
-	static conditional(text: string, nextScene: string, condition: () => boolean): Choice {
-		return this.createChoice(text, nextScene, { condition });
-	}
+    destinations.forEach(dest => {
+      builder.addDestination(dest.name, dest.sceneId, dest.requirement);
+    });
 
-	static skill(text: string, nextScene: string, skill: keyof Skills, level: number): Choice {
-		return this.createChoice(text, nextScene, { skillRequirement: { skill, level } });
-	}
+    builder.addReturnChoice();
 
-	static gold(text: string, nextScene: string, cost: number): Choice {
-		return this.createChoice(text, nextScene, { 
-			condition: () => {
-				const { get } = require('svelte/store');
-				const { gameStore } = require('../gameState.js');
-				return get(gameStore).gold >= cost;
-			},
-			goldCost: cost 
-		});
-	}
+    if (reward) {
+      builder.onEnter(() => {
+        const { applyStateUpdate } = require('../gameState.js');
+        applyStateUpdate(reward);
+      });
+    }
 
-	static item(text: string, nextScene: string, itemId: string): Choice {
-		return this.createChoice(text, nextScene, { 
-			condition: () => {
-				const { get } = require('svelte/store');
-				const { gameStore } = require('../gameState.js');
-				return get(gameStore).inventory.some((item: any) => item.id === itemId);
-			},
-			itemRequired: itemId 
-		});
-	}
+    return builder.build();
+  }
 
-	static flag(text: string, nextScene: string, flag: string): Choice {
-		return this.createChoice(text, nextScene, { 
-			condition: () => {
-				const { get } = require('svelte/store');
-				const { gameStore } = require('../gameState.js');
-				return get(gameStore)[flag];
-			},
-			flagRequired: flag 
-		});
-	}
+  static conversation(
+    id: string,
+    title: string,
+    description: string | (() => string),
+    responses: Array<{ text: string; nextScene: string; requirement?: () => boolean }>,
+    reward?: StateUpdate
+  ): Scene {
+    const builder = this.create(id, title)
+      .description(description)
+      .category('dialogue');
 
-	static multi(
-		text: string, 
-		nextScene: string, 
-		requirements: {
-			items?: string[];
-			flags?: string[];
-			skills?: Array<{ skill: keyof Skills; level: number }>;
-			gold?: number;
-		}
-	): Choice {
-		return this.createChoice(text, nextScene, {
-			condition: () => {
-				const { get } = require('svelte/store');
-				const { gameStore } = require('../gameState.js');
-				const state = get(gameStore);
-				
-				if (requirements.items && !requirements.items.every(itemId => 
-					state.inventory.some((item: any) => item.id === itemId))) return false;
-				
-				if (requirements.flags && !requirements.flags.every(flag => state[flag])) return false;
-				
-				if (requirements.skills && !requirements.skills.every(req => 
-					state[req.skill] >= req.level)) return false;
-				
-				if (requirements.gold && state.gold < requirements.gold) return false;
-				
-				return true;
-			}
-		});
-	}
+    responses.forEach(response => {
+      builder.addResponse(response.text, response.nextScene, response.requirement);
+    });
 
-	static scene(
-		id: string, 
-		title: string, 
-		description: string | (() => string), 
-		choices: Choice[], 
-		options: {
-			onEnter?: () => void;
-			category?: Scene['category'];
-		} = {}
-	): Scene {
-		return {
-			id, 
-			title, 
-			description, 
-			choices, 
-			category: options.category || 'interaction',
-			...(options.onEnter && { onEnter: options.onEnter })
-		};
-	}
+    if (reward) {
+      builder.onEnter(() => {
+        const { applyStateUpdate } = require('../gameState.js');
+        applyStateUpdate(reward);
+      });
+    }
 
-	static exploration(
-		id: string, 
-		title: string, 
-		description: string, 
-		destinations: Array<{ name: string; sceneId: string; requirement?: () => boolean }>,
-		reward?: StateUpdate
-	): Scene {
-		const choices = [
-			...destinations.map(dest => dest.requirement 
-				? this.conditional(`Go to ${dest.name}`, dest.sceneId, dest.requirement)
-				: this.basic(`Go to ${dest.name}`, dest.sceneId)
-			),
-			this.basic('Return to crossroads', 'start')
-		];
+    return builder.build();
+  }
 
-		return this.scene(id, title, description, choices, {
-			category: 'exploration',
-			onEnter: reward ? () => {
-				const { applyStateUpdate } = require('../gameState.js');
-				applyStateUpdate(reward);
-			} : undefined
-		});
-	}
+  static interaction(
+    id: string,
+    title: string,
+    description: string | (() => string),
+    interactions: Array<{ text: string; nextScene: string; requirement?: () => boolean }>,
+    reward?: StateUpdate
+  ): Scene {
+    const builder = this.create(id, title)
+      .description(description)
+      .category('interaction');
 
-	static interaction(
-		id: string,
-		title: string,
-		description: string | (() => string),
-		interactions: Array<{ text: string; nextScene: string; requirement?: () => boolean }>,
-		reward?: StateUpdate
-	): Scene {
-		const choices = [
-			...interactions.map(interaction => interaction.requirement
-				? this.conditional(interaction.text, interaction.nextScene, interaction.requirement)
-				: this.basic(interaction.text, interaction.nextScene)
-			),
-			this.basic('Leave this area', 'start')
-		];
+    interactions.forEach(interaction => {
+      builder.addBasicChoice(interaction.text, interaction.nextScene);
+    });
 
-		return this.scene(id, title, description, choices, {
-			category: 'interaction',
-			onEnter: reward ? () => {
-				const { applyStateUpdate } = require('../gameState.js');
-				applyStateUpdate(reward);
-			} : undefined
-		});
-	}
+    builder.addReturnChoice();
 
-	static victory(
-		id: string, 
-		title: string, 
-		description: string, 
-		victoryType: 'minor' | 'major' | 'ultimate' = 'minor'
-	): Scene {
-		const choices = [
-			this.basic('Celebrate your victory', 'celebrate'),
-			this.basic('Return as a hero', 'heroReturn'),
-			this.basic('Continue your journey', 'start')
-		];
+    if (reward) {
+      builder.onEnter(() => {
+        const { applyStateUpdate } = require('../gameState.js');
+        applyStateUpdate(reward);
+      });
+    }
 
-		const victoryRewards = {
-			minor: { experience: 50, gold: 100, diplomacy: 1 },
-			major: { experience: 150, gold: 300, diplomacy: 3, level: 1 },
-			ultimate: { experience: 500, gold: 1000, diplomacy: 5, level: 3, flags: { dragonDefeated: true } }
-		};
+    return builder.build();
+  }
 
-		return this.scene(id, title, description, choices, {
-			category: 'victory',
-			onEnter: () => {
-				const { applyStateUpdate } = require('../gameState.js');
-				applyStateUpdate(victoryRewards[victoryType]);
-			}
-		});
-	}
+  static victory(
+    id: string, 
+    title: string, 
+    description: string, 
+    victoryType: 'minor' | 'major' | 'ultimate' = 'minor'
+  ): Scene {
+    const victoryRewards = {
+      minor: { experience: 50, gold: 100, diplomacy: 1 },
+      major: { experience: 150, gold: 300, diplomacy: 3, level: 1 },
+      ultimate: { experience: 500, gold: 1000, diplomacy: 5, level: 3, flags: { dragonDefeated: true } }
+    };
 
-	static conversation(
-		id: string,
-		title: string,
-		baseDescription: string,
-		responses: Array<{ text: string; nextScene: string; requirement?: () => boolean }>,
-		reward?: StateUpdate 
-	): Scene {
-		const description = () => {
-			const { get } = require('svelte/store');
-			const { gameStore } = require('../gameState.js');
-			const state = get(gameStore);
-			
-			let desc = baseDescription;
-			if (state.curseKnowledge) {
-				desc += ' Your understanding of the curse colors this interaction.';
-			}
-			if (state.hasSword) {
-				desc += ' The Blade of Transformation pulses with power at your side.';
-			}
-			return desc;
-		};
+    return this.create(id, title)
+      .description(description)
+      .category('victory')
+      .addBasicChoice('Celebrate your victory', 'celebrate')
+      .addBasicChoice('Return as a hero', 'heroReturn')
+      .addBasicChoice('Continue your journey', 'start')
+      .onEnter(() => {
+        const { applyStateUpdate } = require('../gameState.js');
+        applyStateUpdate(victoryRewards[victoryType]);
+      })
+      .build();
+  }
 
-		const choices = responses.map(response => response.requirement
-			? this.conditional(response.text, response.nextScene, response.requirement)
-			: this.basic(response.text, response.nextScene)
-		);
+  static training(
+    id: string,
+    title: string,
+    description: string,
+    skill: keyof Skills,
+    nextScenes: string[] = ['start']
+  ): Scene {
+    const builder = this.create(id, title)
+      .description(description)
+      .category('training');
 
-		return this.scene(id, title, description, choices, {
-			category: 'dialogue',
-			onEnter: reward ? () => {
-				const { applyStateUpdate } = require('../gameState.js');
-				applyStateUpdate(reward);
-			} : undefined
-		});
-	}
+    nextScenes.forEach(scene => {
+      builder.addBasicChoice(`Continue to ${scene}`, scene);
+    });
 
-	static training(
-		id: string,
-		title: string,
-		description: string,
-		skill: keyof Skills,
-		nextScenes: string[] = ['start']
-	): Scene {
-		const choices = [
-			...nextScenes.map(scene => this.basic(`Continue to ${scene}`, scene)),
-			this.basic('Practice more', id),
-			this.basic('Return to crossroads', 'start')
-		];
+    builder
+      .addBasicChoice('Practice more', id)
+      .addReturnChoice()
+      .onEnter(() => {
+        const { applyStateUpdate } = require('../gameState.js');
+        applyStateUpdate({ experience: 20, [skill]: 1 });
+      });
 
-		const trainingReward = { 
-			experience: 20, 
-			[skill]: 1 
-		};
+    return builder.build();
+  }
 
-		return this.scene(id, title, description, choices, {
-			category: 'training',
-			onEnter: () => {
-				const { applyStateUpdate } = require('../gameState.js');
-				applyStateUpdate(trainingReward);
-			}
-		});
-	}
+  static basic(text: string, nextScene: string): Choice {
+    return { text, nextScene };
+  }
+
+  static conditional(text: string, nextScene: string, condition: () => boolean): Choice {
+    return { text, nextScene, condition };
+  }
+
+  static skill(text: string, nextScene: string, skill: keyof Skills, level: number): Choice {
+    return { text, nextScene, skillRequirement: { skill, level } };
+  }
+
+  static gold(text: string, nextScene: string, cost: number): Choice {
+    return { 
+      text, 
+      nextScene, 
+      goldCost: cost,
+      condition: () => {
+        const { get } = require('svelte/store');
+        const { gameStore } = require('../gameState.js');
+        return get(gameStore).gold >= cost;
+      }
+    };
+  }
+
+  static item(text: string, nextScene: string, itemId: string): Choice {
+    return { 
+      text, 
+      nextScene, 
+      itemRequired: itemId,
+      condition: () => {
+        const { get } = require('svelte/store');
+        const { gameStore } = require('../gameState.js');
+        return get(gameStore).inventory.some((item: any) => item.id === itemId);
+      }
+    };
+  }
+
+  static multi(text: string, nextScene: string, requirements: {
+    items?: string[];
+    flags?: string[];
+    skills?: Array<{ skill: keyof Skills; level: number }>;
+    gold?: number;
+  }): Choice {
+    return {
+      text,
+      nextScene,
+      condition: () => {
+        const { get } = require('svelte/store');
+        const { gameStore } = require('../gameState.js');
+        const state = get(gameStore);
+        
+        if (requirements.items && !requirements.items.every(itemId => 
+          state.inventory.some((item: any) => item.id === itemId))) return false;
+        
+        if (requirements.flags && !requirements.flags.every(flag => state[flag])) return false;
+        
+        if (requirements.skills && !requirements.skills.every(req => 
+          state[req.skill] >= req.level)) return false;
+        
+        if (requirements.gold && state.gold < requirements.gold) return false;
+        
+        return true;
+      }
+    };
+  }
+
+  static scene(
+    id: string, 
+    title: string, 
+    description: string | (() => string), 
+    choices: Choice[], 
+    options: { onEnter?: () => void; category?: Scene['category'] } = {}
+  ): Scene {
+    const builder = this.create(id, title)
+      .description(description);
+
+    if (options.category) {
+      builder.category(options.category);
+    }
+
+    if (options.onEnter) {
+      builder.onEnter(options.onEnter);
+    }
+
+    choices.forEach(choice => {
+      (builder as any).sceneChoices.push(choice);
+    });
+
+    return builder.build();
+  }
 }
+
+export const exampleScenes = {
+  complexTowerScene: SceneFactory.create('complexTower', 'The Ancient Tower')
+    .description('A towering structure of ancient stone, pulsing with mystical energy.')
+    .category('exploration')
+    .addDestination('the tower entrance', 'towerEntrance')
+    .addExamination('the mystical runes', 'examineRunes')
+    .addChoice('Attempt to climb the exterior', 'climbExterior')
+      .skillRequirement('stealth', 3)
+      .build()
+    .addChoice('Try to sense the magic within', 'senseMagic')
+      .skillRequirement('magic_skill', 2)
+      .build()
+    .addItemChoice('Use the iron key on the door', 'unlockDoor', 'ironKey')
+    .addReturnChoice()
+    .onEnter(() => {
+      const { applyStateUpdate } = require('../gameState.js');
+      applyStateUpdate({ experience: 20, magic_skill: 1 });
+    })
+    .build(),
+
+  merchantConversation: SceneFactory.create('merchant', 'The Village Merchant')
+    .description('A friendly merchant with interesting wares and tales from distant lands.')
+    .category('dialogue')
+    .addResponse('Ask about rare magical items', 'magicalWares')
+    .addResponse('Inquire about the dragon', 'merchantDragonTale')
+    .addGoldChoice('Buy healing potions (50 gold)', 'buyPotions', 50)
+    .addChoice('Trade your sword for supplies', 'tradeSword')
+      .itemRequired('ancientSword')
+      .build()
+    .addReturnChoice('villageCenter')
+    .onEnter(() => {
+      const { applyStateUpdate } = require('../gameState.js');
+      applyStateUpdate({ experience: 10, diplomacy: 1 });
+    })
+    .build()
+};

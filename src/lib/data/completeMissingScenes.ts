@@ -1,39 +1,6 @@
-// src/lib/data/missingScenes.ts
+// src/lib/data/completeMissingScenes.ts
 import type { Scene } from '../core/types.js';
 import { SceneFactory } from '../core/sceneFactory.js';
-
-const inlineUpdates = {
-	villageInteraction: () => ({ 
-		experience: 15, 
-		diplomacy: 1, 
-		flags: { villageVisited: true } 
-	}),
-	basicExploration: () => ({ experience: 15 }),
-	dragonInteraction: () => ({ 
-		experience: 25, 
-		diplomacy: 2, 
-		flags: { curseKnowledge: true } 
-	}),
-	magicalDiscovery: () => ({ 
-		experience: 30, 
-		magic_skill: 2, 
-		magic: 25 
-	}),
-	combatTraining: () => ({ 
-		experience: 20, 
-		combat: 1, 
-		health: 10 
-	}),
-	restAndRecovery: () => ({ 
-		health: 25, 
-		magic: 15, 
-		experience: 10 
-	}),
-	treasureFound: (goldAmount = 50) => ({ 
-		gold: goldAmount, 
-		experience: 20 
-	})
-};
 
 const createStateUpdate = (update: any) => () => {
 	const { applyStateUpdate } = require('../gameState.js');
@@ -239,16 +206,6 @@ export const villageScenes: Record<string, Scene> = {
 		{ experience: 15, diplomacy: 1, gold: 10 }
 	),
 
-	hearRareItems: SceneFactory.scene(
-		'hearRareItems',
-		'Tales of Rare Items',
-		'The merchants tell you about rare magical items they\'ve encountered in their travels.',
-		[SceneFactory.basic('Keep this information in mind', 'merchantChat')],
-		{
-			onEnter: createStateUpdate({ experience: 20, flags: { knowsRareItems: true } })
-		}
-	),
-
 	emptyStalls: SceneFactory.exploration(
 		'emptyStalls',
 		'Abandoned Market Stalls',
@@ -258,19 +215,6 @@ export const villageScenes: Record<string, Scene> = {
 			{ name: 'examine the damage', sceneId: 'examineDamage' },
 			{ name: 'ask villagers about the merchants', sceneId: 'askAboutMerchants' }
 		]
-	),
-
-	searchStalls: SceneFactory.scene(
-		'searchStalls',
-		'Searching Abandoned Stalls',
-		'You find some useful items left behind in the hastily abandoned market stalls.',
-		[SceneFactory.basic('Return to the market', 'emptyStalls')],
-		{
-			onEnter: createStateUpdate({ 
-				items: ['goldCoin', 'healingPotion'], 
-				experience: 15 
-			})
-		}
 	),
 
 	restAtInn: SceneFactory.scene(
@@ -302,19 +246,6 @@ export const villageScenes: Record<string, Scene> = {
 			{ text: 'Share your own story', nextScene: 'shareYourStory' }
 		],
 		{ experience: 20, diplomacy: 1 }
-	),
-
-	dragonTales: SceneFactory.scene(
-		'dragonTales',
-		'Dragon Tales',
-		'Travelers share stories of other dragons they\'ve encountered, giving you valuable insights.',
-		[SceneFactory.basic('Learn more from the tales', 'travelerTales')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 25, 
-				flags: { knowsDragonTales: true, curseKnowledge: true } 
-			})
-		}
 	)
 };
 
@@ -331,18 +262,6 @@ export const dragonInteractionScenes: Record<string, Scene> = {
 		{ experience: 35, diplomacy: 3, flags: { promisedHelp: true } }
 	),
 
-	offerSwordHealing: SceneFactory.conversation(
-		'offerSwordHealing',
-		'The Blade of Healing',
-		'You offer to use your sword not as a weapon, but as a tool of transformation and healing.',
-		[
-			{ text: 'Begin the transformation ritual', nextScene: 'breakCurse' },
-			{ text: 'Ask the dragon to guide the process', nextScene: 'guidedHealing' },
-			{ text: 'Channel healing energy through the blade', nextScene: 'channelHealing' }
-		],
-		{ experience: 40, magic_skill: 2, flags: { swordHealer: true } }
-	),
-
 	cursOrigin: SceneFactory.conversation(
 		'cursOrigin',
 		'The Curse\'s Dark Origin',
@@ -353,18 +272,6 @@ export const dragonInteractionScenes: Record<string, Scene> = {
 			{ text: 'Offer to find a way to reverse it', nextScene: 'promiseHelp' }
 		],
 		{ experience: 40, magic_skill: 2, flags: { knowsCurseOrigin: true } }
-	),
-
-	expressCompassion: SceneFactory.conversation(
-		'expressCompassion',
-		'True Compassion',
-		'Your genuine compassion for the dragon\'s suffering creates a powerful emotional connection.',
-		[
-			{ text: 'Offer comfort and understanding', nextScene: 'deepComfort' },
-			{ text: 'Share your own struggles', nextScene: 'shareStruggles' },
-			{ text: 'Promise to end his pain', nextScene: 'promiseRelief' }
-		],
-		{ experience: 45, diplomacy: 4, flags: { shownCompassion: true } }
 	),
 
 	askHowToHeal: SceneFactory.conversation(
@@ -379,23 +286,6 @@ export const dragonInteractionScenes: Record<string, Scene> = {
 		{ experience: 30, magic_skill: 1, flags: { knowsHealing: true } }
 	),
 
-	performHealingRitual: SceneFactory.scene(
-		'performHealingRitual',
-		'The Healing Ritual',
-		'Together with Aethonaris, you begin the complex ritual to break the curse through compassion and understanding.',
-		[
-			SceneFactory.multi('Complete the ritual with perfect harmony', 'breakCurse', {
-				flags: ['hasSword', 'curseKnowledge', 'shownCompassion'],
-				skills: [{ skill: 'magic_skill', level: 2 }]
-			}),
-			SceneFactory.basic('Continue working on the ritual', 'ritualProgress'),
-			SceneFactory.basic('Ask for the dragon\'s guidance', 'seekGuidance')
-		],
-		{
-			onEnter: createStateUpdate({ experience: 30, magic_skill: 1 })
-		}
-	),
-
 	shareWisdom: SceneFactory.conversation(
 		'shareWisdom',
 		'Sharing Ancient Wisdom',
@@ -408,18 +298,6 @@ export const dragonInteractionScenes: Record<string, Scene> = {
 		{ experience: 35, diplomacy: 2, magic_skill: 1 }
 	),
 
-	discussForgiveness: SceneFactory.conversation(
-		'discussForgiveness',
-		'The Power of Forgiveness',
-		'You speak about the transformative power of forgiveness, both for oneself and others.',
-		[
-			{ text: 'Help the dragon forgive himself', nextScene: 'selfForgiveness' },
-			{ text: 'Discuss forgiving those who caused the curse', nextScene: 'forgiveCaster' },
-			{ text: 'Speak of universal compassion', nextScene: 'universalCompassion' }
-		],
-		{ experience: 40, diplomacy: 3, flags: { discussedForgiveness: true } }
-	),
-
 	offerFriendship: SceneFactory.conversation(
 		'offerFriendship',
 		'An Offer of Friendship',
@@ -430,20 +308,6 @@ export const dragonInteractionScenes: Record<string, Scene> = {
 			{ text: 'Offer to help him reconnect with the world', nextScene: 'helpReconnect' }
 		],
 		{ experience: 40, diplomacy: 3, flags: { dragonFriend: true } }
-	),
-
-	promiseVisits: SceneFactory.scene(
-		'promiseVisits',
-		'A Promise of Companionship',
-		'You promise to visit Aethonaris regularly, ensuring he won\'t be alone anymore.',
-		[SceneFactory.basic('Seal the promise with trust', 'friendship')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 35, 
-				diplomacy: 3, 
-				flags: { promisedVisits: true, dragonFriend: true } 
-			})
-		}
 	)
 };
 
@@ -470,44 +334,6 @@ export const explorationScenes: Record<string, Scene> = {
 		}
 	),
 
-	prayAtShrine: SceneFactory.scene(
-		'prayAtShrine',
-		'Prayer at the Sacred Shrine',
-		'Your prayers are answered with a blessing of nature magic and wisdom.',
-		[SceneFactory.basic('Return to the grove', 'ancientGrove')],
-		{
-			onEnter: createStateUpdate({ 
-				magic: 30, 
-				magic_skill: 2, 
-				experience: 35,
-				flags: { natureBless
-: true }
-			})
-		}
-	),
-
-	singingsprings: SceneFactory.scene(
-		'singingsprings',
-		'The Singing Springs',
-		'You discover springs that sing with magical resonance, their waters having healing properties.',
-		[SceneFactory.basic('Drink from the springs', 'drinkSprings')],
-		{
-			onEnter: createStateUpdate({ health: 20, magic: 15, experience: 20 })
-		}
-	),
-
-	elderTree: SceneFactory.conversation(
-		'elderTree',
-		'The Elder Tree',
-		'The ancient tree speaks to you with wisdom accumulated over centuries.',
-		[
-			{ text: 'Ask about the dragon\'s curse', nextScene: 'treeWisdomDragon' },
-			{ text: 'Request guidance for your quest', nextScene: 'treeGuidance' },
-			{ text: 'Seek nature\'s blessing', nextScene: 'seekNatureBlessing' }
-		],
-		{ experience: 30, magic_skill: 2, flags: { elderTreeWisdom: true } }
-	),
-
 	hiddenClearing: SceneFactory.exploration(
 		'hiddenClearing',
 		'Hidden Clearing',
@@ -519,30 +345,6 @@ export const explorationScenes: Record<string, Scene> = {
 		]
 	),
 
-	gatherHerbs: SceneFactory.scene(
-		'gatherHerbs',
-		'Gathering Magical Herbs',
-		'You carefully gather rare herbs that possess potent magical properties.',
-		[SceneFactory.basic('Continue exploring the clearing', 'hiddenClearing')],
-		{
-			onEnter: createStateUpdate({ 
-				items: ['magicPotion', 'healingPotion'], 
-				experience: 20,
-				magic_skill: 1
-			})
-		}
-	),
-
-	stoneCircle: SceneFactory.scene(
-		'stoneCircle',
-		'The Mysterious Stone Circle',
-		'Ancient stones arranged in a perfect circle hum with dormant magical energy.',
-		[SceneFactory.basic('Touch the center stone', 'activateCircle')],
-		{
-			onEnter: createStateUpdate({ magic_skill: 2, experience: 25 })
-		}
-	),
-
 	bridgeOtherSide: SceneFactory.exploration(
 		'bridgeOtherSide',
 		'Beyond the Bridge',
@@ -552,29 +354,6 @@ export const explorationScenes: Record<string, Scene> = {
 			{ name: 'a crystal cave', sceneId: 'crystalCave' },
 			{ name: 'an abandoned watchtower', sceneId: 'watchtower' }
 		]
-	),
-
-	mountainPath: SceneFactory.exploration(
-		'mountainPath',
-		'The Mountain Path',
-		'A winding path leads up into the mountains, promising adventure and perhaps ancient wisdom.',
-		[
-			{ name: 'the mountain oracle', sceneId: 'mountainOracle' },
-			{ name: 'a hermit\'s cave', sceneId: 'hermitCave' },
-			{ name: 'the peak sanctuary', sceneId: 'peakSanctuary' }
-		]
-	),
-
-	crystalCave: SceneFactory.exploration(
-		'crystalCave',
-		'The Crystal Cave',
-		'A cave filled with glowing crystals that amplify magical energy.',
-		[
-			{ name: 'the largest crystal', sceneId: 'masterCrystal' },
-			{ name: 'crystal formations', sceneId: 'studyCrystals' },
-			{ name: 'deeper into the cave', sceneId: 'deeperCave' }
-		],
-		{ experience: 20, magic_skill: 1, magic: 20 }
 	),
 
 	examineRunes: SceneFactory.scene(
@@ -602,16 +381,6 @@ export const explorationScenes: Record<string, Scene> = {
 		]
 	),
 
-	searchDebris: SceneFactory.scene(
-		'searchDebris',
-		'Searching River Debris',
-		'Among the driftwood, you find some useful items washed down from upstream.',
-		[SceneFactory.basic('Continue exploring the riverbank', 'riverBank')],
-		{
-			onEnter: createStateUpdate({ items: ['goldCoin', 'ironKey'], experience: 15 })
-		}
-	),
-
 	wagonTracks: SceneFactory.scene(
 		'wagonTracks',
 		'Following the Wagon Tracks',
@@ -621,20 +390,6 @@ export const explorationScenes: Record<string, Scene> = {
 			onEnter: createStateUpdate({ 
 				items: ['healingPotion', 'goldCoin'], 
 				experience: 20 
-			})
-		}
-	),
-
-	searchCampsite: SceneFactory.scene(
-		'searchCampsite',
-		'Abandoned Campsite',
-		'You thoroughly search the old campsite, finding more supplies and clues about previous travelers.',
-		[SceneFactory.basic('Return to the crossroads', 'start')],
-		{
-			onEnter: createStateUpdate({ 
-				items: ['magicPotion', 'treasureMap'], 
-				experience: 25,
-				flags: { foundCampsite: true }
 			})
 		}
 	),
@@ -666,16 +421,6 @@ export const villageInteractionScenes: Record<string, Scene> = {
 		{ experience: 20, diplomacy: 2 }
 	),
 
-	learnFamilies: SceneFactory.scene(
-		'learnFamilies',
-		'Village Families',
-		'You learn about the villagers\' families and how the dragon\'s presence has affected their lives.',
-		[SceneFactory.basic('Offer to help reunite families', 'helpFamilies')],
-		{
-			onEnter: createStateUpdate({ experience: 25, diplomacy: 2 })
-		}
-	),
-
 	helpVillage: SceneFactory.interaction(
 		'helpVillage',
 		'Helping the Village',
@@ -702,21 +447,6 @@ export const villageInteractionScenes: Record<string, Scene> = {
 		}
 	),
 
-	organizeDefenses: SceneFactory.scene(
-		'organizeDefenses',
-		'Organizing Village Defenses',
-		'You help the villagers organize better defenses against potential dragon attacks.',
-		[SceneFactory.basic('Complete the defense preparations', 'start')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 30, 
-				combat: 1,
-				diplomacy: 2,
-				flags: { organizedDefenses: true }
-			})
-		}
-	),
-
 	getGuidance: SceneFactory.conversation(
 		'getGuidance',
 		'Seeking Village Guidance',
@@ -727,20 +457,6 @@ export const villageInteractionScenes: Record<string, Scene> = {
 			{ text: 'Inquire about previous heroes\' attempts', nextScene: 'learnPreviousAttempts' }
 		],
 		{ experience: 20, diplomacy: 1 }
-	),
-
-	learnDragonBehavior: SceneFactory.scene(
-		'learnDragonBehavior',
-		'Dragon Behavior Patterns',
-		'The villagers share their observations about the dragon\'s behavior, helping you understand when and how to approach.',
-		[SceneFactory.basic('Use this knowledge wisely', 'start')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 25, 
-				stealth: 1,
-				flags: { knowsDragonBehavior: true }
-			})
-		}
 	)
 };
 
@@ -772,30 +488,6 @@ export const wizardTowerScenes: Record<string, Scene> = {
 		}
 	),
 
-	examineAlchemy: SceneFactory.scene(
-		'examineAlchemy',
-		'Alchemical Equipment',
-		'You examine the wizard\'s alchemical apparatus, learning about potion-making and magical transmutation.',
-		[SceneFactory.basic('Try brewing a simple potion', 'brewPotion')],
-		{
-			onEnter: createStateUpdate({ magic_skill: 1, experience: 20 })
-		}
-	),
-
-	wizardDesk: SceneFactory.scene(
-		'wizardDesk',
-		'The Wizard\'s Desk',
-		'The wizard\'s desk contains notes about dragon curses and potential solutions.',
-		[SceneFactory.basic('Study the curse research', 'studyCurseResearch')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 30, 
-				magic_skill: 2,
-				flags: { curseKnowledge: true, wizardNotes: true }
-			})
-		}
-	),
-
 	magicalLibrary: SceneFactory.exploration(
 		'magicalLibrary',
 		'The Magical Library',
@@ -817,20 +509,6 @@ export const wizardTowerScenes: Record<string, Scene> = {
 				experience: 40, 
 				magic_skill: 2, 
 				flags: { dragonLoreKnowledge: true, curseKnowledge: true }
-			})
-		}
-	),
-
-	curseTexts: SceneFactory.scene(
-		'curseTexts',
-		'Curse-Breaking Texts',
-		'Ancient texts reveal the secrets of breaking powerful curses through various methods.',
-		[SceneFactory.basic('Study the breaking techniques', 'learnCurseBreaking')],
-		{
-			onEnter: createStateUpdate({ 
-				experience: 35, 
-				magic_skill: 3,
-				flags: { masterCurseBreaker: true }
 			})
 		}
 	),
@@ -858,254 +536,81 @@ export const wizardTowerScenes: Record<string, Scene> = {
 				magic: 15
 			})
 		}
-	),
-
-	magicalFruits: SceneFactory.scene(
-		'magicalFruits',
-		'Magical Fruit Trees',
-		'You discover fruit trees that bear magical fruit with various beneficial properties.',
-		[SceneFactory.basic('Taste the magical fruits', 'tasteFruits')],
-		{
-			onEnter: createStateUpdate({ health: 25, magic: 20, experience: 15 })
-		}
-	),
-
-	gardenHeart: SceneFactory.scene(
-		'gardenHeart',
-		'The Garden\'s Heart',
-		'At the center of the garden, you find a fountain of pure magical energy.',
-		[SceneFactory.basic('Drink from the fountain', 'drinkMagicFountain')],
-		{
-			onEnter: createStateUpdate({ 
-				magic: 40, 
-				magic_skill: 3, 
-				experience: 40,
-				flags: { gardenBlessing: true }
-			})
-		}
 	)
 };
 
-export const originalExplorationScenes: Record<string, Scene> = {
-	mysteriousForest: SceneFactory.exploration(
-		'mysteriousForest', 
-		'The Mysterious Forest',
-		'You enter a dark forest where ancient trees whisper secrets. Shafts of moonlight pierce through the canopy, revealing a path deeper into the woods.',
+export const expansionScenes: Record<string, Scene> = {
+	seekAncientWisdom: SceneFactory.exploration(
+		'seekAncientWisdom',
+		'Seeking Ancient Wisdom',
+		'You embark on a quest to find ancient wisdom that might help in dealing with the dragon\'s curse.',
 		[
-			{ name: 'the ancient grove', sceneId: 'ancientGrove' },
-			{ name: 'the wizard\'s tower', sceneId: 'wizardTower' },
-			{ name: 'a hidden clearing', sceneId: 'hiddenClearing' }
+			{ name: 'the oracle of the mountains', sceneId: 'mountainOracle' },
+			{ name: 'the library of the ancients', sceneId: 'ancientLibrary' },
+			{ name: 'the sage hermit', sceneId: 'sageHermit' }
 		]
 	),
 
-	stoneBridge: SceneFactory.exploration(
-		'stoneBridge',
-		'The Ancient Stone Bridge', 
-		'You approach an old stone bridge spanning a turbulent river. The bridge looks sturdy but ancient, with mysterious runes carved into its pillars.',
+	mountainOracle: SceneFactory.conversation(
+		'mountainOracle',
+		'The Mountain Oracle',
+		'High in the mountains, you find an ancient oracle who speaks in riddles about the nature of curses and redemption.',
 		[
-			{ name: 'the other side', sceneId: 'bridgeOtherSide' },
-			{ name: 'examine the runes', sceneId: 'examineRunes' },
-			{ name: 'the river bank', sceneId: 'riverBank' }
+			{ text: 'Ask about breaking curses through compassion', nextScene: 'compassionWisdom' },
+			{ text: 'Inquire about the Blade of Transformation', nextScene: 'bladeWisdom' },
+			{ text: 'Request a vision of the future', nextScene: 'oracleVision' }
+		],
+		{ experience: 50, magic_skill: 3, flags: { oracleBlessing: true } }
+	),
+
+	secretCave: SceneFactory.exploration(
+		'secretCave',
+		'The Secret Cave',
+		'Behind a waterfall, you discover a hidden cave filled with ancient treasures and mysterious artifacts.',
+		[
+			{ name: 'ancient treasure chest', sceneId: 'treasureChest' },
+			{ name: 'mysterious altar', sceneId: 'mysteriousAltar' },
+			{ name: 'cave paintings', sceneId: 'cavePaintings' }
 		]
 	),
 
-	examineArea: SceneFactory.interaction(
-		'examineArea',
-		'Careful Examination',
-		'You carefully examine the crossroads, noticing details you missed before. There are old wagon tracks, worn signposts, and what appears to be a hidden cache.',
+	innerReflection: SceneFactory.conversation(
+		'innerReflection',
+		'Inner Reflection',
+		'You take time for deep reflection on your journey, your motivations, and what you\'ve learned.',
 		[
-			{ text: 'Search the hidden cache', nextScene: 'findCache' },
-			{ text: 'Follow the wagon tracks', nextScene: 'wagonTracks' },
-			{ text: 'Read the worn signposts', nextScene: 'readSigns' }
+			{ text: 'Contemplate the meaning of heroism', nextScene: 'heroismReflection' },
+			{ text: 'Think about compassion vs. violence', nextScene: 'compassionReflection' },
+			{ text: 'Consider your growth as a person', nextScene: 'growthReflection' }
 		],
-		{ experience: 20, stealth: 1 }
-	)
-};
-
-export const originalVillageScenes: Record<string, Scene> = {
-	approachVillage: SceneFactory.exploration(
-		'approachVillage',
-		'Approaching the Village',
-		'As you near the village, you see smoke rising from chimneys and hear the sounds of daily life. The villagers seem wary but not hostile.',
-		[
-			{ name: 'the village center', sceneId: 'villageCenter' },
-			{ name: 'the village elder\'s home', sceneId: 'villageElder' },
-			{ name: 'the market square', sceneId: 'villageMarket' },
-			{ name: 'the village inn', sceneId: 'villageInn' }
-		]
+		{ experience: 30, diplomacy: 2, magic_skill: 1 }
 	),
 
-	villageCenter: SceneFactory.interaction(
-		'villageCenter',
-		'Village Center',
-		'The heart of the village bustles with activity. Children play while adults go about their daily tasks, though you notice worried glances toward the distant tower.',
-		[
-			{ text: 'Talk to the villagers', nextScene: 'talkVillagers' },
-			{ text: 'Help with village tasks', nextScene: 'helpVillage' },
-			{ text: 'Ask about the tower', nextScene: 'askAboutTower' }
-		],
-		inlineUpdates.villageInteraction()
+	peacefulResolution: SceneFactory.victory(
+		'peacefulResolution',
+		'The Path of Peace',
+		'Through wisdom, compassion, and understanding, you find a way to resolve the dragon\'s curse without violence.',
+		'ultimate'
 	),
 
-	askDragon: SceneFactory.conversation(
-		'askDragon',
-		'Learning About the Dragon',
-		'The elder\'s eyes grow distant as they speak of the dragon\'s curse.',
+	findCompanion: SceneFactory.conversation(
+		'findCompanion',
+		'Finding a Companion',
+		'You encounter a potential companion who could aid you on your quest.',
 		[
-			{ text: 'Ask about breaking the curse', nextScene: 'learnCurseBreaking' },
-			{ text: 'Request guidance for your quest', nextScene: 'getGuidance' },
-			{ text: 'Offer to help the village', nextScene: 'offerHelp' }
-		],
-		{ experience: 25, diplomacy: 2, flags: { curseKnowledge: true } }
-	)
-};
-
-export const originalDragonScenes: Record<string, Scene> = {
-	talkDragon: SceneFactory.conversation(
-		'talkDragon',
-		'Speaking with the Dragon',
-		'You speak calmly to the great dragon. Aethonaris regards you with ancient, sorrowful eyes.',
-		[
-			{ text: 'Ask about the curse\'s pain', nextScene: 'askAboutPain' },
-			{ text: 'Show compassion for his suffering', nextScene: 'showCompassion' },
-			{ text: 'Offer friendship', nextScene: 'offerFriendship' }
-		],
-		inlineUpdates.dragonInteraction()
-	),
-
-	fightDragon: SceneFactory.scene(
-		'fightDragon',
-		'The Dragon Battle',
-		'You draw your sword and face the mighty dragon in combat. This is a battle that will test all your skills.',
-		[
-			SceneFactory.skill('Use superior combat technique', 'combatVictory', 'combat', 3),
-			SceneFactory.skill('Cast a powerful spell', 'magicVictory', 'magic_skill', 3),
-			SceneFactory.basic('Fight with determination', 'hardFought')
-		],
-		{ category: 'combat' }
-	),
-
-	comfortDragon: SceneFactory.conversation(
-		'comfortDragon',
-		'Offering Comfort',
-		'Your words of comfort reach the dragon\'s heart. You see hope flicker in his ancient eyes.',
-		[
-			{ text: 'Promise to find a way to break the curse', nextScene: 'promiseHelp' },
-			{ text: 'Ask how the curse can be broken', nextScene: 'askHowToHeal' },
-			{ text: 'Share your own struggles', nextScene: 'shareWisdom' }
-		],
-		{ experience: 30, diplomacy: 3, flags: { curseKnowledge: true } }
-	)
-};
-
-export const originalTowerScenes: Record<string, Scene> = {
-	tower: SceneFactory.exploration(
-		'tower',
-		'The Dragon\'s Tower',
-		'Before you looms the ancient tower, its dark stones reaching toward the sky. You can sense powerful magic within.',
-		[
-			{ name: 'the tower entrance', sceneId: 'towerEntrance' },
-			{ name: 'around the tower base', sceneId: 'towerBase' },
-			{ name: 'the locked door', sceneId: 'unlockTower' }
-		]
-	),
-
-	unlockTower: SceneFactory.interaction(
-		'unlockTower',
-		'The Tower Door',
-		'You examine the massive door blocking entrance to the tower. It requires a key or great skill to open.',
-		[
-			{ text: 'Use the iron key', nextScene: 'openWithKey', 
-			  requirement: () => {
-				const { get } = require('svelte/store');
-				const { gameStore } = require('../gameState.js');
-				return get(gameStore).hasKey;
-			  }},
-			{ text: 'Pick the lock', nextScene: 'pickLock' },
-			{ text: 'Try to force the door', nextScene: 'forceDoor' },
-			{ text: 'Climb the tower exterior', nextScene: 'climbTower' }
-		]
-	),
-
-	wizardTower: SceneFactory.exploration(
-		'wizardTower',
-		'The Wizard\'s Tower',
-		'A tall, spiraling tower covered in mystical symbols. You sense great magical knowledge within.',
-		[
-			{ name: 'the wizard\'s study', sceneId: 'wizardStudy' },
-			{ name: 'the magical library', sceneId: 'magicalLibrary' },
-			{ name: 'the enchanted garden', sceneId: 'enchantedGarden' }
+			{ text: 'Invite them to join your quest', nextScene: 'gainCompanion' },
+			{ text: 'Share information and part ways', nextScene: 'shareInfo' },
+			{ text: 'Test their skills first', nextScene: 'testCompanion' }
 		]
 	)
 };
 
-export const originalEndingScenes: Record<string, Scene> = {
-	celebrate: SceneFactory.victory(
-		'celebrate',
-		'Victory Celebration',
-		'You celebrate your great achievement. The curse is broken, and peace returns to the land.',
-		'major'
-	),
-
-	heroReturn: SceneFactory.victory(
-		'heroReturn',
-		'Return of the Hero',
-		'You return to the village as a hero. The people celebrate your victory over the dragon\'s curse.',
-		'major'
-	)
-};
-
-export const utilityScenes: Record<string, Scene> = {
-	findCache: SceneFactory.scene(
-		'findCache',
-		'Hidden Cache',
-		'You discover a hidden cache containing useful items.',
-		[SceneFactory.basic('Take the items and continue', 'start')],
-		{ 
-			category: 'exploration',
-			onEnter: createStateUpdate({ 
-				items: ['healingPotion', 'goldCoin'], 
-				experience: 20 
-			})
-		}
-	),
-
-	getSupplies: SceneFactory.scene(
-		'getSupplies',
-		'Getting Supplies', 
-		'The elder provides you with essential supplies for your quest.',
-		[SceneFactory.basic('Thank them and continue', 'start')],
-		{
-			onEnter: createStateUpdate({ 
-				items: ['healingPotion', 'ironKey'], 
-				experience: 15,
-				diplomacy: 1
-			})
-		}
-	),
-
-	offerHelp: SceneFactory.scene(
-		'offerHelp',
-		'Offering Help',
-		'You offer your services to help the village. They are grateful for your assistance.',
-		[SceneFactory.basic('Continue your quest', 'start')],
-		{
-			onEnter: createStateUpdate(inlineUpdates.villageInteraction())
-		}
-	)
-};
-
-export const missingScenes: Record<string, Scene> = {
-	...originalExplorationScenes,
-	...originalVillageScenes,
-	...originalDragonScenes,
-	...originalTowerScenes,
-	...originalEndingScenes,
+export const allMissingScenes: Record<string, Scene> = {
 	...towerScenes,
 	...villageScenes,
 	...dragonInteractionScenes,
 	...explorationScenes,
 	...villageInteractionScenes,
 	...wizardTowerScenes,
-	...utilityScenes
+	...expansionScenes
 };
