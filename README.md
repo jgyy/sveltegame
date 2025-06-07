@@ -2,6 +2,10 @@
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
+## Personal notes
+
+currently at 1k lines, yet to check for duplicates.
+
 ## Creating a project
 
 If you're seeing this, you've probably already done this step. Congrats!

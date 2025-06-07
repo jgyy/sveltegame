@@ -1,6 +1,7 @@
 // src/lib/gameData.ts
 import type { Item, Scene } from './types.js';
 import { gameStore } from './gameState.js';
+import { get } from 'svelte/store';
 
 export const items: Record<string, Item> = {
 	ironKey: { id: 'ironKey', name: 'Iron Key', description: 'A heavy iron key with strange symbols' },
@@ -62,7 +63,7 @@ export const scenes: Record<string, Scene> = {
 		title: 'The Wayside Shrine',
 		description: 'The small shrine is dedicated to Aethon, the god of travelers. A small offering bowl sits before a weathered statue. There\'s also a rolled parchment tucked behind the statue.',
 		choices: [
-			{ text: 'Make an offering (costs 5 gold)', nextScene: 'shrineOffering', condition: () => gameStore.get().gold >= 5 },
+			{ text: 'Make an offering (costs 5 gold)', nextScene: 'shrineOffering', condition: () => get(gameStore).gold >= 5 },
 			{ text: 'Read the parchment', nextScene: 'shrineParchment' },
 			{ text: 'Pray at the shrine', nextScene: 'shrinePrayer' },
 			{ text: 'Leave the shrine untouched', nextScene: 'start' }
@@ -170,10 +171,10 @@ export const scenes: Record<string, Scene> = {
 	cottage: {
 		id: 'cottage',
 		title: 'The Hermit\'s Cottage',
-		description: () => gameStore.get().hasKey ? 
+		description: () => get(gameStore).hasKey ? 
 			'The cottage is old and weathered, with ivy covering most of its stone walls. You\'ve already explored inside and taken what you needed.' :
 			'The cottage is old and weathered, with ivy covering most of its stone walls. The wooden door hangs slightly ajar, creaking softly in the breeze. Through the dirty windows, you can see the dim outline of furniture covered in dust sheets.',
-		choices: () => gameStore.get().hasKey ? [
+		choices: () => get(gameStore).hasKey ? [
 			{ text: 'Search around the outside more thoroughly', nextScene: 'cottageSide' },
 			{ text: 'Head deeper into the forest', nextScene: 'deepForest' },
 			{ text: 'Return to the crossroads', nextScene: 'start' }
@@ -229,7 +230,7 @@ export const scenes: Record<string, Scene> = {
 			});
 		},
 		choices: [
-			{ text: 'Take the key if you haven\'t already', nextScene: () => gameStore.get().hasKey ? 'journal' : 'takeKey' },
+			{ text: 'Take the key if you haven\'t already', nextScene: () => get(gameStore).hasKey ? 'journal' : 'takeKey' },
 			{ text: 'Read the journal', nextScene: 'journal' },
 			{ text: 'Search the rest of the cottage', nextScene: 'searchCottage' }
 		]
@@ -238,7 +239,7 @@ export const scenes: Record<string, Scene> = {
 	journal: {
 		id: 'journal',
 		title: 'The Hermit\'s Journal',
-		description: () => gameStore.get().curseKnowledge ? 
+		description: () => get(gameStore).curseKnowledge ? 
 			'The journal confirms what you learned from the shrine parchment. The hermit writes: "The dragon\'s curse spreads like poison through the land. The village withers, the bridge crumbles, and the forest grows dark. I have found the ancient sword and the key to the tower, but I am too old and weak. The curse can only be broken by one pure of heart and strong of will."' :
 			'The journal is written in an elegant hand. The last entry reads: "The dragon in the old tower has been terrorizing our land for months. I\'ve discovered that the ancient sword hidden in the cave behind the waterfall is the only weapon that can defeat it. The key I\'ve left here will unlock the tower door. May whoever finds this have the courage I lacked."',
 		onEnter: () => {
@@ -248,8 +249,8 @@ export const scenes: Record<string, Scene> = {
 			});
 		},
 		choices: [
-			{ text: 'Take the key if you haven\'t already', nextScene: () => gameStore.get().hasKey ? 'searchCottage' : 'takeKey' },
-			{ text: 'Take the potion if you haven\'t already', nextScene: () => gameStore.get().hasPotion ? 'searchCottage' : 'redBottle' },
+			{ text: 'Take the key if you haven\'t already', nextScene: () => get(gameStore).hasKey ? 'searchCottage' : 'takeKey' },
+			{ text: 'Take the potion if you haven\'t already', nextScene: () => get(gameStore).hasPotion ? 'searchCottage' : 'redBottle' },
 			{ text: 'Search the rest of the cottage', nextScene: 'searchCottage' },
 			{ text: 'Leave and head to the deep forest', nextScene: 'deepForest' }
 		]
@@ -300,7 +301,7 @@ export const scenes: Record<string, Scene> = {
 	approachVillage: {
 		id: 'approachVillage',
 		title: 'The Troubled Village',
-		description: () => gameStore.get().villageVisited ? 
+		description: () => get(gameStore).villageVisited ? 
 			'You return to the village. The people still look worried, but some recognize you now.' :
 			'As you approach the village, you notice something is wrong. The crops in the fields are withered, people move listlessly through the streets, and an air of despair hangs over everything. A few villagers look at you with a mixture of hope and skepticism.',
 		choices: [
@@ -315,7 +316,7 @@ export const scenes: Record<string, Scene> = {
 	villageElder: {
 		id: 'villageElder',
 		title: 'The Wise Elder',
-		description: () => gameStore.get().curseKnowledge ? 
+		description: () => get(gameStore).curseKnowledge ? 
 			'The elder, a woman with silver hair and kind eyes, listens as you share what you\'ve learned about the curse. "Yes," she nods sadly, "the dragon\'s malice spreads like a plague. Our young people grow sick, our crops fail, and hope fades each day. You may be our last chance."' :
 			'The village elder, a woman with silver hair and kind eyes, greets you wearily. "Stranger, I hope you bring good news, for we have little left. A curse has fallen upon our land. Our crops wither, our people grow weak, and strange dreams plague our sleep. Some say it\'s the work of an ancient dragon."',
 		onEnter: () => {
@@ -361,10 +362,10 @@ export const scenes: Record<string, Scene> = {
 	cave: {
 		id: 'cave',
 		title: 'The Sacred Cave',
-		description: () => gameStore.get().hasSword ? 
+		description: () => get(gameStore).hasSword ? 
 			'The cave behind the waterfall has been transformed by your presence. Where once the ancient sword lay, now pulses of magical energy emanate from the stone pedestal.' :
 			'The cave is cool and damp, filled with ancient magic. As your eyes adjust, you see detailed murals depicting the history of the dragon - once a noble guardian, transformed by a terrible curse. At the far end of the cave, an ancient sword rests in a stone pedestal, glowing with inner light.',
-		choices: () => gameStore.get().hasSword ? [
+		choices: () => get(gameStore).hasSword ? [
 			{ text: 'Study the murals more carefully', nextScene: 'caveDrawings' },
 			{ text: 'Meditate at the magical nexus', nextScene: 'caveMeditation' },
 			{ text: 'Leave the cave', nextScene: 'waterfall' }
@@ -379,7 +380,7 @@ export const scenes: Record<string, Scene> = {
 	findSword: {
 		id: 'findSword',
 		title: 'The Blade of Transformation',
-		description: () => gameStore.get().curseKnowledge ? 
+		description: () => get(gameStore).curseKnowledge ? 
 			'You grasp the ancient sword, and with your knowledge of the curse\'s true nature, you feel it resonate with transformative power. This blade can indeed defeat the dragon, but more importantly, it can break the curse that binds the noble creature.' :
 			'You discover an ancient sword embedded in a stone pedestal. The blade gleams with an otherworldly light, and strange runes are etched along its length. As you grasp the hilt, you feel a surge of power coursing through you.',
 		onEnter: () => {
@@ -402,10 +403,10 @@ export const scenes: Record<string, Scene> = {
 	tower: {
 		id: 'tower',
 		title: 'The Dragon\'s Tower',
-		description: () => gameStore.get().hasKey ? 
+		description: () => get(gameStore).hasKey ? 
 			'You stand before the imposing stone tower that reaches high into the cloudy sky. The massive wooden door bears the same symbols as your iron key. Powerful magical energies emanate from within, and you can hear the deep, mournful sounds of the cursed dragon.' :
 			'You stand before an imposing stone tower that reaches high into the sky. The massive wooden door is locked with an intricate iron mechanism that pulses with magical energy. Deep, sorrowful roars echo from within - the sound of a once-noble creature trapped by an ancient curse.',
-		choices: () => gameStore.get().hasKey ? [
+		choices: () => get(gameStore).hasKey ? [
 			{ text: 'Use the iron key to unlock the door', nextScene: 'unlockTower' },
 			{ text: 'Prepare yourself before entering', nextScene: 'prepareTower' },
 			{ text: 'Return to gather more allies or knowledge', nextScene: 'deepForest' }
@@ -423,7 +424,7 @@ export const scenes: Record<string, Scene> = {
 		description: 'The key turns smoothly in the lock, and the heavy door swings open with a deep, resonant tone. Inside, you see a spiral staircase carved from black stone, leading upward into darkness. The air is thick with ancient magic and the weight of centuries of sorrow.',
 		choices: [
 			{ text: 'Climb the stairs to face your destiny', nextScene: 'climbTower' },
-			{ text: 'Call out to announce your peaceful intentions', nextScene: 'callOut', condition: () => gameStore.get().curseKnowledge },
+			{ text: 'Call out to announce your peaceful intentions', nextScene: 'callOut', condition: () => get(gameStore).curseKnowledge },
 			{ text: 'Use magic to sense what lies above', nextScene: 'senseTower', skillRequirement: { skill: 'magic_skill', level: 2 } },
 			{ text: 'Retreat to reconsider your approach', nextScene: 'tower' }
 		]
@@ -433,7 +434,7 @@ export const scenes: Record<string, Scene> = {
 		id: 'climbTower',
 		title: 'The Dragon\'s Lair',
 		description: () => {
-			const state = gameStore.get();
+			const state = get(gameStore);
 			if (state.curseKnowledge && state.hasSword) {
 				return 'You reach the top of the tower and behold Aethonaris - the great dragon whose scales shimmer between gold and deep sorrow. His ancient eyes meet yours with a mixture of hope and despair. "You carry the Blade of Transformation," he says. "Do you come to end my suffering, or to grant me redemption?"';
 			} else if (state.hasSword) {
@@ -445,7 +446,7 @@ export const scenes: Record<string, Scene> = {
 			}
 		},
 		choices: () => {
-			const state = gameStore.get();
+			const state = get(gameStore);
 			let choices = [];
 			if (state.hasSword && state.curseKnowledge) {
 				choices.push(
@@ -514,7 +515,7 @@ export const scenes: Record<string, Scene> = {
 	fightDragon: {
 		id: 'fightDragon',
 		title: 'Epic Battle',
-		description: () => gameStore.get().curseKnowledge ? 
+		description: () => get(gameStore).curseKnowledge ? 
 			'Despite knowing the dragon\'s true nature, you choose to fight. The battle is fierce but swift. Your sword, guided by compassion even in combat, strikes true. As Aethonaris falls, he whispers: "Thank you... for ending my torment. Perhaps... in death... I find peace."' :
 			'You raise the ancient sword, and it blazes with magical light. The dragon attacks with fire and claw, but the enchanted blade cuts through his defenses. After an epic battle, you strike the final blow. The dragon falls, and with his last breath, he speaks: "The curse... is broken... Thank you, warrior."',
 		onEnter: () => {
@@ -570,10 +571,10 @@ export const scenes: Record<string, Scene> = {
 	stoneBridge: {
 		id: 'stoneBridge',
 		title: 'The Ancient Stone Bridge',
-		description: () => gameStore.get().bridgeRepaired ? 
+		description: () => get(gameStore).bridgeRepaired ? 
 			'The bridge stands strong once again, its stones properly aligned and secure. You can safely cross to the wizard\'s domain.' :
 			'The ancient stone bridge spans a rushing river, but you can see that several stones have fallen into the water below. The remaining structure looks unstable and dangerous to cross. There are loose stones scattered on this side of the river.',
-		choices: () => gameStore.get().bridgeRepaired ? [
+		choices: () => get(gameStore).bridgeRepaired ? [
 			{ text: 'Cross the bridge to the wizard\'s tower', nextScene: 'wizardTower' },
 			{ text: 'Return to explore other areas', nextScene: 'start' }
 		] : [

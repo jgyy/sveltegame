@@ -14,36 +14,164 @@
 		initializeAutoSave
 	} from '../gameState.js';
 
+	let error: string | null = null;
+	let scene: any = null;
+	let items: any[] = [];
+	let playerStats: any = {};
+	let playerSkills: any = {};
+	let gameState: any = {};
+
+	function clearError() {
+		error = null;
+	}
+
+	function handleError(err: Error, context: string) {
+		console.error(`Error in ${context}:`, err);
+		error = `Game Error (${context}): ${err.message}. Please try refreshing the page or starting a new game.`;
+	}
+
+	function safeStore(storeValue: any, fallback: any, storeName: string) {
+		try {
+			return storeValue || fallback;
+		} catch (err) {
+			handleError(err as Error, `accessing ${storeName} store`);
+			return fallback;
+		}
+	}
+
+	function safeMakeChoice(choice: any) {
+		try {
+			clearError();
+			makeChoice(choice);
+		} catch (err) {
+			handleError(err as Error, 'making choice');
+		}
+	}
+
+	function safeUseItem(itemId: string) {
+		try {
+			clearError();
+			useItem(itemId);
+		} catch (err) {
+			handleError(err as Error, 'using item');
+		}
+	}
+
+	function safeResetGame() {
+		try {
+			clearError();
+			resetGame();
+		} catch (err) {
+			handleError(err as Error, 'resetting game');
+		}
+	}
+
+	function safeCanMakeChoice(choice: any): boolean {
+		try {
+			return canMakeChoice(choice);
+		} catch (err) {
+			handleError(err as Error, 'checking choice availability');
+			return false;
+		}
+	}
+
 	onMount(() => {
-		initializeAutoSave();
+		try {
+			initializeAutoSave();
+		} catch (err) {
+			handleError(err as Error, 'initializing auto-save');
+		}
 	});
 
-	$: scene = $currentScene;
-	$: items = $inventory;
-	$: playerStats = $stats;
-	$: playerSkills = $skills;
-	$: gameState = $gameStore;
+	$: {
+		try {
+			scene = safeStore($currentScene, { 
+				title: 'Error Loading Scene', 
+				description: 'There was an error loading the current scene.',
+				choices: [{ text: 'Reset Game', nextScene: 'start' }]
+			}, 'currentScene');
+		} catch (err) {
+			handleError(err as Error, 'updating scene');
+		}
+	}
+
+	$: {
+		try {
+			items = safeStore($inventory, [], 'inventory');
+		} catch (err) {
+			handleError(err as Error, 'updating inventory');
+		}
+	}
+
+	$: {
+		try {
+			playerStats = safeStore($stats, { health: 100, magic: 50, gold: 0, experience: 0, level: 1 }, 'stats');
+		} catch (err) {
+			handleError(err as Error, 'updating stats');
+		}
+	}
+
+	$: {
+		try {
+			playerSkills = safeStore($skills, { combat: 1, magic_skill: 1, diplomacy: 1, stealth: 1 }, 'skills');
+		} catch (err) {
+			handleError(err as Error, 'updating skills');
+		}
+	}
+
+	$: {
+		try {
+			gameState = safeStore($gameStore, { gameHistory: [], dragonDefeated: false }, 'gameStore');
+		} catch (err) {
+			handleError(err as Error, 'updating game state');
+		}
+	}
 	
-	$: health = playerStats.health;
-	$: magic = playerStats.magic;
-	$: gold = playerStats.gold;
-	$: experience = playerStats.experience;
-	$: level = playerStats.level;
+	$: health = playerStats.health || 100;
+	$: magic = playerStats.magic || 50;
+	$: gold = playerStats.gold || 0;
+	$: experience = playerStats.experience || 0;
+	$: level = playerStats.level || 1;
 	
-	$: combat = playerSkills.combat;
-	$: magic_skill = playerSkills.magic_skill;
-	$: diplomacy = playerSkills.diplomacy;
-	$: stealth = playerSkills.stealth;
+	$: combat = playerSkills.combat || 1;
+	$: magic_skill = playerSkills.magic_skill || 1;
+	$: diplomacy = playerSkills.diplomacy || 1;
+	$: stealth = playerSkills.stealth || 1;
 	
-	$: gameHistory = gameState.gameHistory;
-	$: dragonDefeated = gameState.dragonDefeated;
+	$: gameHistory = gameState.gameHistory || [];
+	$: dragonDefeated = gameState.dragonDefeated || false;
 	
-	$: usableItems = items.filter(item => item.usable);
+	$: usableItems = items.filter(item => item?.usable);
 	$: isHealthCritical = health <= 30;
 	$: isMagicLow = magic <= 20 && magic_skill > 1;
 </script>
 
 <div class="max-w-4xl mx-auto p-6 bg-gradient-to-b from-purple-50 via-blue-50 to-green-50 min-h-screen">
+	{#if error}
+		<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+			<div class="flex justify-between items-start">
+				<div>
+					<strong class="font-bold">⚠️ Error:</strong>
+					<span class="block sm:inline">{error}</span>
+				</div>
+				<button 
+					on:click={clearError}
+					class="ml-4 text-red-700 hover:text-red-900"
+				>
+					✕
+				</button>
+			</div>
+			<div class="mt-2">
+				<button 
+					on:click={safeResetGame}
+					class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
+				>
+					Reset Game
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<div class="bg-white rounded-lg shadow-lg p-6 mb-6 border-2 border-purple-200">
 		<h1 class="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
 			🏰 The Dragon's Tower: Expanded Adventure
@@ -94,14 +222,14 @@
 			{#if items.length > 0}
 				<div class="bg-gray-100 text-gray-800 px-3 py-2 rounded-lg">
 					<span class="font-medium">🎒 Inventory:</span> 
-					<span class="text-sm">{items.map(item => item.name).join(', ')}</span>
+					<span class="text-sm">{items.map(item => item?.name || 'Unknown Item').join(', ')}</span>
 				</div>
 			{:else}
 				<div></div>
 			{/if}
 			
 			<button 
-				on:click={resetGame}
+				on:click={safeResetGame}
 				class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 font-medium"
 			>
 				🔄 New Game
@@ -112,38 +240,44 @@
 	<div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
 		<div class="mb-6">
 			<h2 class="text-3xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-				{scene.title}
+				{scene?.title || 'Loading...'}
 			</h2>
 			<div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
 				<p class="text-gray-700 leading-relaxed text-lg">
-					{scene.description}
+					{scene?.description || 'Loading scene...'}
 				</p>
 			</div>
 		</div>
 
 		<div class="space-y-3">
-			{#each scene.choices as choice, index}
-				{#if canMakeChoice(choice)}
-					<button
-						on:click={() => makeChoice(choice)}
-						class="w-full text-left p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-blue-300"
-					>
-						<span class="font-medium">{choice.text}</span>
-						{#if choice.skillRequirement}
-							<span class="text-blue-200 text-sm ml-2">
+			{#if scene?.choices}
+				{#each scene.choices as choice, index}
+					{#if safeCanMakeChoice(choice)}
+						<button
+							on:click={() => safeMakeChoice(choice)}
+							class="w-full text-left p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-blue-300"
+						>
+							<span class="font-medium">{choice.text}</span>
+							{#if choice.skillRequirement}
+								<span class="text-blue-200 text-sm ml-2">
+									(Requires {choice.skillRequirement.skill.replace('_', ' ')} {choice.skillRequirement.level})
+								</span>
+							{/if}
+						</button>
+					{:else if choice.skillRequirement}
+						<div class="w-full text-left p-4 bg-gray-300 text-gray-500 rounded-lg border-2 border-gray-400 cursor-not-allowed">
+							<span>{choice.text}</span>
+							<span class="text-gray-400 text-sm ml-2">
 								(Requires {choice.skillRequirement.skill.replace('_', ' ')} {choice.skillRequirement.level})
 							</span>
-						{/if}
-					</button>
-				{:else if choice.skillRequirement}
-					<div class="w-full text-left p-4 bg-gray-300 text-gray-500 rounded-lg border-2 border-gray-400 cursor-not-allowed">
-						<span>{choice.text}</span>
-						<span class="text-gray-400 text-sm ml-2">
-							(Requires {choice.skillRequirement.skill.replace('_', ' ')} {choice.skillRequirement.level})
-						</span>
-					</div>
-				{/if}
-			{/each}
+						</div>
+					{/if}
+				{/each}
+			{:else}
+				<div class="text-gray-500 text-center p-4">
+					Loading choices...
+				</div>
+			{/if}
 		</div>
 
 		{#if usableItems.length > 0}
@@ -152,7 +286,7 @@
 				<div class="flex flex-wrap gap-2">
 					{#each usableItems as item}
 						<button
-							on:click={() => useItem(item.id)}
+							on:click={() => safeUseItem(item.id)}
 							class="bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-3 py-1 rounded-lg text-sm transition-colors"
 						>
 							Use {item.name}

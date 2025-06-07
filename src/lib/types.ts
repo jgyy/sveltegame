@@ -1,7 +1,7 @@
 // src/lib/types.ts
 export interface Choice {
 	text: string;
-	nextScene: string;
+	nextScene: string | (() => string);
 	condition?: () => boolean;
 	skillRequirement?: { skill: string; level: number };
 }
@@ -9,8 +9,8 @@ export interface Choice {
 export interface Scene {
 	id: string;
 	title: string;
-	description: string;
-	choices: Choice[];
+	description: string | (() => string);
+	choices: Choice[] | (() => Choice[]);
 	onEnter?: () => void;
 	image?: string;
 }
