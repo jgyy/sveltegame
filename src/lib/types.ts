@@ -3,7 +3,7 @@ export interface Choice {
 	text: string;
 	nextScene: string | (() => string);
 	condition?: () => boolean;
-	skillRequirement?: { skill: string; level: number };
+	skillRequirement?: { skill: keyof Skills; level: number };
 }
 
 export interface Scene {
@@ -21,6 +21,13 @@ export interface Item {
 	description: string;
 	value?: number;
 	usable?: boolean;
+}
+
+export interface Skills {
+	combat: number;
+	magic_skill: number;
+	diplomacy: number;
+	stealth: number;
 }
 
 export interface GameState {
