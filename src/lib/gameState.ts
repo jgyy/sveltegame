@@ -36,9 +36,113 @@ const initialState: GameState = {
 
 export const gameStore = writable<GameState>(initialState);
 
+interface StateUpdate {
+	health?: number;
+	magic?: number;
+	gold?: number;
+	experience?: number;
+	level?: number;
+	combat?: number;
+	magic_skill?: number;
+	diplomacy?: number;
+	stealth?: number;
+	flags?: Record<string, boolean>;
+	items?: string[];
+}
+
 function updateGameStore(updater: (state: GameState) => GameState) {
 	gameStore.update(createSafeWrapper(updater, 'game store update'));
 }
+
+export const applyStateUpdate = createSafeWrapper((update: StateUpdate): void => {
+	updateGameStore(state => {
+		const newState = { ...state };
+		
+		if (update.health !== undefined) newState.health = Math.max(0, Math.min(100, newState.health + update.health));
+		if (update.magic !== undefined) newState.magic = Math.max(0, Math.min(100, newState.magic + update.magic));
+		if (update.gold !== undefined) newState.gold = Math.max(0, newState.gold + update.gold);
+		if (update.experience !== undefined) newState.experience = Math.max(0, newState.experience + update.experience);
+		if (update.level !== undefined) newState.level = Math.max(1, newState.level + update.level);
+		
+		if (update.combat !== undefined) newState.combat = Math.max(1, newState.combat + update.combat);
+		if (update.magic_skill !== undefined) newState.magic_skill = Math.max(1, newState.magic_skill + update.magic_skill);
+		if (update.diplomacy !== undefined) newState.diplomacy = Math.max(1, newState.diplomacy + update.diplomacy);
+		if (update.stealth !== undefined) newState.stealth = Math.max(1, newState.stealth + update.stealth);
+		
+		if (update.flags) {
+			Object.assign(newState, update.flags);
+		}
+		
+		if (update.items) {
+			const newItems = update.items
+				.map(itemId => items[itemId])
+				.filter(item => item && !newState.inventory.some(inv => inv.id === item.id));
+			newState.inventory = [...newState.inventory, ...newItems];
+		}
+		
+		return newState;
+	});
+}, 'applyStateUpdate');
+
+export const commonUpdates = {
+	basicExploration: (): StateUpdate => ({ experience: 15 }),
+	
+	skillTraining: (skill: keyof Skills, amount = 1): StateUpdate => ({ 
+		experience: 20, 
+		[skill]: amount 
+	}),
+	
+	villageInteraction: (): StateUpdate => ({ 
+		experience: 15, 
+		diplomacy: 1, 
+		flags: { villageVisited: true } 
+	}),
+	
+	dragonInteraction: (): StateUpdate => ({ 
+		experience: 25, 
+		diplomacy: 2, 
+		flags: { curseKnowledge: true } 
+	}),
+	
+	magicalDiscovery: (): StateUpdate => ({ 
+		experience: 30, 
+		magic_skill: 2, 
+		magic: 25 
+	}),
+	
+	combatTraining: (): StateUpdate => ({ 
+		experience: 20, 
+		combat: 1, 
+		health: 10 
+	}),
+	
+	restAndRecovery: (): StateUpdate => ({ 
+		health: 25, 
+		magic: 15, 
+		experience: 10 
+	}),
+	
+	treasureFound: (goldAmount = 50): StateUpdate => ({ 
+		gold: goldAmount, 
+		experience: 20 
+	}),
+	
+	levelUpBonus: (): StateUpdate => ({ 
+		level: 1, 
+		health: 10, 
+		magic: 10, 
+		experience: 100 
+	}),
+	
+	victoryReward: (type: 'minor' | 'major' | 'ultimate' = 'minor'): StateUpdate => {
+		const rewards = {
+			minor: { experience: 50, gold: 100, diplomacy: 1 },
+			major: { experience: 150, gold: 300, diplomacy: 3, level: 1 },
+			ultimate: { experience: 500, gold: 1000, diplomacy: 5, level: 3, flags: { dragonDefeated: true } }
+		};
+		return rewards[type];
+	}
+};
 
 export const currentScene = derived(gameStore, ($gameStore) => {
 	try {
@@ -141,9 +245,7 @@ export const makeChoice = createSafeWrapper((choice: Choice): void => {
 	
 	updateGameStore(state => {
 		if (state.experience >= state.level * 100) {
-			state.level += 1;
-			state.health = Math.min(100, state.health + 10);
-			state.magic = Math.min(100, state.magic + 10);
+			applyStateUpdate(commonUpdates.levelUpBonus());
 		}
 		return state;
 	});
