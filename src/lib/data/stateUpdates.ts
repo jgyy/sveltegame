@@ -1,12 +1,12 @@
 // src/lib/data/stateUpdates.ts
 import type { StateUpdate } from '../core/types.js';
 
-export const createStateUpdate = (update: any) => () => {
+export const createStateUpdate = (update: StateUpdate) => () => {
   const { applyStateUpdate } = require('../gameState.js');
   applyStateUpdate(update);
 };
 
-export const commonUpdates = {
+export const stateUpdates = {
   villageInteraction: (): StateUpdate => ({ 
     experience: 15, 
     diplomacy: 1, 

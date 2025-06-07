@@ -13,17 +13,66 @@
 		resetGame,
 		initializeAutoSave
 	} from '../gameState.js';
+	import { scenes } from '../gameData.js';
 	import { safeStoreAccess } from '../utils/errorHandler.js';
+	import type { Scene, Choice } from '../core/types.js';
 	import GameUI from './GameUI.svelte';
 	import DebugPanel from './DebugPanel.svelte';
 
 	let error: string | null = null;
 
-	const scene = $derived(safeStoreAccess($currentScene, { 
-		title: 'Error Loading Scene', 
-		description: 'There was an error loading the current scene.',
-		choices: [{ text: 'Reset Game', nextScene: 'start' }]
-	}, 'currentScene'));
+	const currentSceneId = $derived(safeStoreAccess($currentScene, 'start', 'currentSceneId'));
+	
+	const processedScene = $derived((() => {
+		try {
+			const rawScene = scenes[currentSceneId];
+			if (!rawScene) {
+				console.warn(`Scene not found: ${currentSceneId}`);
+				return {
+					id: 'error',
+					title: 'Scene Not Found', 
+					description: `The scene "${currentSceneId}" could not be found.`,
+					choices: [{ text: 'Return to start', nextScene: 'start' }]
+				};
+			}
+
+			let description: string;
+			try {
+				description = typeof rawScene.description === 'function' 
+					? rawScene.description() 
+					: rawScene.description;
+			} catch (err) {
+				console.warn(`Error processing description for scene ${currentSceneId}:`, err);
+				description = 'Error loading scene description.';
+			}
+
+			let choices: Choice[];
+			try {
+				choices = typeof rawScene.choices === 'function' 
+					? rawScene.choices() 
+					: rawScene.choices;
+			} catch (err) {
+				console.warn(`Error processing choices for scene ${currentSceneId}:`, err);
+				choices = [{ text: 'Return to start (error occurred)', nextScene: 'start' }];
+			}
+
+			return {
+				id: rawScene.id,
+				title: rawScene.title,
+				description,
+				choices,
+				category: rawScene.category
+			};
+		} catch (err) {
+			console.error('Error processing scene:', err);
+			return {
+				id: 'error',
+				title: 'Error Loading Scene',
+				description: 'There was an error loading the current scene.',
+				choices: [{ text: 'Reset Game', nextScene: 'start' }]
+			};
+		}
+	})());
 
 	const items = $derived(safeStoreAccess($inventory, [], 'inventory'));
 	const playerStats = $derived(safeStoreAccess($stats, { health: 100, magic: 50, gold: 0, experience: 0, level: 1 }, 'stats'));
@@ -34,11 +83,12 @@
 	const isHealthCritical = $derived(playerStats.health <= 30);
 	const isMagicLow = $derived(playerStats.magic <= 20 && playerSkills.magic_skill > 1);
 
-	function handleChoice(choice: any) {
+	function handleChoice(choice: Choice) {
 		try {
 			error = null;
 			makeChoice(choice);
 		} catch (err) {
+			console.error('Error making choice:', err);
 			error = `Error making choice: ${(err as Error).message}`;
 		}
 	}
@@ -48,6 +98,7 @@
 			error = null;
 			useItem(itemId);
 		} catch (err) {
+			console.error('Error using item:', err);
 			error = `Error using item: ${(err as Error).message}`;
 		}
 	}
@@ -57,6 +108,7 @@
 			error = null;
 			resetGame();
 		} catch (err) {
+			console.error('Error resetting game:', err);
 			error = `Error resetting game: ${(err as Error).message}`;
 		}
 	}
@@ -65,6 +117,7 @@
 		try {
 			initializeAutoSave();
 		} catch (err) {
+			console.error('Error initializing auto-save:', err);
 			error = `Error initializing auto-save: ${(err as Error).message}`;
 		}
 	});
@@ -98,18 +151,18 @@
 	<div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
 		<div class="mb-6">
 			<h2 class="text-3xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-				{scene?.title || 'Loading...'}
+				{processedScene.title}
 			</h2>
 			<div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
 				<p class="text-gray-700 leading-relaxed text-lg">
-					{scene?.description || 'Loading scene...'}
+					{processedScene.description}
 				</p>
 			</div>
 		</div>
 
 		<div class="space-y-3">
-			{#if scene?.choices}
-				{#each scene.choices as choice}
+			{#if processedScene.choices && processedScene.choices.length > 0}
+				{#each processedScene.choices as choice}
 					{#if canMakeChoice(choice)}
 						<button
 							onclick={() => handleChoice(choice)}
@@ -131,6 +184,13 @@
 						</div>
 					{/if}
 				{/each}
+			{:else}
+				<div class="text-center p-4 text-gray-500">
+					No choices available. 
+					<button onclick={handleResetGame} class="text-blue-600 hover:text-blue-800 underline ml-2">
+						Reset Game
+					</button>
+				</div>
 			{/if}
 		</div>
 
@@ -150,6 +210,17 @@
 			</div>
 		{/if}
 
+		{#if isHealthCritical}
+			<div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+				<p class="text-red-800 text-sm">⚠️ Your health is critically low! Consider using healing items.</p>
+			</div>
+		{/if}
+
+		{#if isMagicLow}
+			<div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+				<p class="text-blue-800 text-sm">💧 Your magic is running low. You may want to restore it before attempting magical actions.</p>
+			</div>
+		{/if}
 	</div>
 
 	<DebugPanel />

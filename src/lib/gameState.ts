@@ -11,7 +11,6 @@ export {
   resetGame,
   initializeAutoSave
 } from './core/stateManager.js';
-
 export {
   makeChoice,
   canMakeChoice

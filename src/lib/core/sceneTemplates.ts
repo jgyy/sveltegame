@@ -1,6 +1,7 @@
 // src/lib/core/sceneTemplates.ts
 import type { Scene } from './types.js';
 import { SceneFactory } from './sceneFactory.js';
+import { createStateUpdate } from '../data/stateUpdates.js';
 
 interface SceneTemplate {
 	id: string;
