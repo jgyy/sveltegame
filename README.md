@@ -4,7 +4,7 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 
 ## Personal notes
 
-Wait for 2k lines then check for duplicates.
+5k length now, fix it thanks!
 
 ## Creating a project
 
