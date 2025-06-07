@@ -1,5 +1,6 @@
 // src/lib/gameData.ts
 import type { Item, Scene } from './types.js';
+import { version2Scenes } from './version2Scenes.js';
 
 export const items: Record<string, Item> = {
 	ironKey: { id: 'ironKey', name: 'Iron Key', description: 'A heavy iron key with strange symbols' },
@@ -252,7 +253,8 @@ const generatedScenes = {
 
 import { addGeneratedScenes } from './sceneGenerators.js';
 
-export const scenes: Record<string, Scene> = addGeneratedScenes({
-	...coreScenes,
-	...generatedScenes
-});
+export const scenes: Record<string, Scene> = {
+    ...coreScenes,
+    ...generatedScenes,
+    ...version2Scenes
+};
