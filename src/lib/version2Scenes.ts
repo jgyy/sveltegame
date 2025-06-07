@@ -1,4 +1,12 @@
 // src/lib/version2Scenes.ts
+import type { Scene } from './types.js';
+import { 
+	basicChoice, 
+	conditionalChoice, 
+	createScene 
+} from './utils/sceneHelpers.js';
+import { items } from './data/items.js';
+
 const missingScenes: Record<string, Scene> = {
 	examineArea: createScene('examineArea', 'Careful Observation',
 		'You take time to carefully examine your surroundings. The crossroads appears to be ancient, with worn stone markers indicating directions. You notice fresh footprints leading toward the village, old campfire ashes near the forest path, and strange magical residue around the bridge area.',

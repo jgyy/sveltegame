@@ -1,69 +1,19 @@
 // src/lib/gameData.ts
 import type { Item, Scene } from './types.js';
+import { items } from './data/items.js';
 import { version2Scenes } from './version2Scenes.js';
-
-export const items: Record<string, Item> = {
-	ironKey: { id: 'ironKey', name: 'Iron Key', description: 'A heavy iron key with strange symbols' },
-	ancientSword: { id: 'ancientSword', name: 'Ancient Sword', description: 'A magical sword that glows with power' },
-	healingPotion: { id: 'healingPotion', name: 'Healing Potion', description: 'Restores 50 health', usable: true },
-	magicPotion: { id: 'magicPotion', name: 'Magic Potion', description: 'Restores 30 magic', usable: true },
-	spellbook: { id: 'spellbook', name: 'Spellbook of Elements', description: 'Contains powerful fire and ice spells' },
-	treasureMap: { id: 'treasureMap', name: 'Treasure Map', description: 'Shows the location of hidden treasure' },
-	goldCoin: { id: 'goldCoin', name: 'Gold Coins', description: 'Shiny gold coins', value: 1 },
-	dragonScale: { id: 'dragonScale', name: 'Dragon Scale', description: 'A scale from the ancient dragon' },
-	wizardStaff: { id: 'wizardStaff', name: 'Wizard Staff', description: 'Increases magical power' }
-};
-
-const updateStats = (updates: any) => () => {
-	const { gameStore } = require('./gameState.js');
-	gameStore.update((state: any) => ({ ...state, ...updates }));
-};
-
-const addItems = (...itemIds: string[]) => () => {
-	const { gameStore } = require('./gameState.js');
-	gameStore.update((state: any) => ({
-		...state, inventory: [...state.inventory, ...itemIds.map(id => items[id])]
-	}));
-};
-
-const combineUpdates = (...updates: (() => void)[]) => () => updates.forEach(update => update());
-
-const basicChoice = (text: string, nextScene: string) => ({ text, nextScene });
-const conditionalChoice = (text: string, nextScene: string, condition: () => boolean) => ({ text, nextScene, condition });
-const skillChoice = (text: string, nextScene: string, skill: string, level: number) => ({ text, nextScene, skillRequirement: { skill, level } });
-
-const goldChoice = (text: string, nextScene: string, cost: number) => conditionalChoice(text, nextScene, () => {
-	const { get } = require('svelte/store');
-	const { gameStore } = require('./gameState.js');
-	return get(gameStore).gold >= cost;
-});
-
-const createScene = (id: string, title: string, description: string | (() => string), choices: any[], onEnter?: () => void) => ({
-	id, title, description, choices, ...(onEnter && { onEnter })
-});
-
-const createExplorationScene = (id: string, title: string, description: string, destinations: string[]) => 
-	createScene(id, title, description, [
-		...destinations.map(dest => basicChoice(`Go to ${dest}`, dest.toLowerCase().replace(/\s+/g, ''))),
-		basicChoice('Return to crossroads', 'start')
-	]);
-
-const createVictoryScene = (id: string, title: string, description: string, exp: number, levelUp = 0) =>
-	createScene(id, title, description, [
-		basicChoice('Celebrate with Aethonaris', 'celebrateWithDragon'),
-		basicChoice('Return as hero', 'ultimateHeroReturn'),
-		basicChoice('Learn from experience', 'dragonMentor')
-	], () => {
-		const { get } = require('svelte/store');
-		const { gameStore } = require('./gameState.js');
-		const currentState = get(gameStore);
-		gameStore.update((state: any) => ({ 
-			...state, 
-			dragonDefeated: true, 
-			experience: state.experience + exp, 
-			level: state.level + levelUp 
-		}));
-	});
+import { 
+	basicChoice, 
+	conditionalChoice, 
+	skillChoice, 
+	goldChoice,
+	createScene, 
+	createExplorationScene, 
+	createVictoryScene,
+	updateStats,
+	addItems,
+	combineUpdates
+} from './utils/sceneHelpers.js';
 
 const coreScenes: Record<string, Scene> = {
 	start: createScene('start', 'The Crossroads of Destiny',
@@ -253,6 +203,7 @@ const generatedScenes = {
 
 import { addGeneratedScenes } from './sceneGenerators.js';
 
+export { items };
 export const scenes: Record<string, Scene> = {
     ...coreScenes,
     ...generatedScenes,

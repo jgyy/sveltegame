@@ -4,7 +4,7 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 
 ## Personal notes
 
-5k length now, fix it thanks!
+2k lines
 
 ## Creating a project
 
