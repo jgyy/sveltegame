@@ -15,6 +15,7 @@
 	} from '../gameState.js';
 	import { safeStoreAccess } from '../utils/errorHandler.js';
 	import GameUI from './GameUI.svelte';
+	import DebugPanel from './DebugPanel.svelte';
 
 	let error: string | null = null;
 
@@ -150,4 +151,6 @@
 		{/if}
 
 	</div>
+
+	<DebugPanel />
 </div>

@@ -44,12 +44,16 @@ export const currentScene = derived(gameStore, ($gameStore) => {
 	try {
 		const scene = scenes[$gameStore.currentSceneId];
 		if (!scene) {
-			console.error(`Scene not found: ${$gameStore.currentSceneId}`);
+			const errorMsg = `Scene '${$gameStore.currentSceneId}' not found in scenes definition. Available scenes: ${Object.keys(scenes).join(', ')}`;
+			console.error(errorMsg);
 			return {
 				id: 'error',
-				title: 'Error',
-				description: 'Scene not found. Please reset the game.',
-				choices: [{ text: 'Reset Game', nextScene: 'start' }]
+				title: 'Scene Not Found Error',
+				description: `Could not find scene: "${$gameStore.currentSceneId}". This scene may not be implemented yet. Please try resetting the game or report this bug.`,
+				choices: [
+					{ text: 'Reset Game', nextScene: 'start' },
+					{ text: 'Go to Start Scene', nextScene: 'start' }
+				]
 			};
 		}
 		
@@ -58,8 +62,8 @@ export const currentScene = derived(gameStore, ($gameStore) => {
 		console.error('Error in currentScene derived store:', err);
 		return {
 			id: 'error',
-			title: 'Error',
-			description: 'An error occurred loading the scene.',
+			title: 'Scene Processing Error',
+			description: `An error occurred while processing scene "${$gameStore.currentSceneId}": ${(err as Error).message}`,
 			choices: [{ text: 'Reset Game', nextScene: 'start' }]
 		};
 	}
@@ -110,9 +114,19 @@ export const makeChoice = createSafeWrapper((choice: Choice): void => {
 		
 		let nextSceneId: string;
 		if (typeof choice.nextScene === 'function') {
-			nextSceneId = choice.nextScene();
+			try {
+				nextSceneId = choice.nextScene();
+			} catch (err) {
+				console.error('Error executing choice function:', err);
+				nextSceneId = 'start'; 
+			}
 		} else {
 			nextSceneId = choice.nextScene;
+		}
+		
+		if (!scenes[nextSceneId]) {
+			console.error(`Warning: Transitioning to non-existent scene '${nextSceneId}'. Falling back to start.`);
+			nextSceneId = 'start';
 		}
 		
 		state.currentSceneId = nextSceneId;
