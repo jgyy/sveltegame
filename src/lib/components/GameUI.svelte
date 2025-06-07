@@ -1,6 +1,6 @@
 <!-- src/lib/components/GameUI.svelte -->
 <script lang="ts">
-	import type { GameState } from '../types.js';
+	import type { GameState } from '../core/types.js';
 
 	interface Props {
 		health: number;

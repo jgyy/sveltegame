@@ -1,9 +1,12 @@
-// src/lib/types.ts
+// src/lib/core/types.ts
 export interface Choice {
 	text: string;
 	nextScene: string | (() => string);
 	condition?: () => boolean;
 	skillRequirement?: { skill: keyof Skills; level: number };
+	goldCost?: number;
+	itemRequired?: string;
+	flagRequired?: string;
 }
 
 export interface Scene {
@@ -13,6 +16,7 @@ export interface Scene {
 	choices: Choice[] | (() => Choice[]);
 	onEnter?: () => void;
 	image?: string;
+	category?: 'exploration' | 'interaction' | 'combat' | 'dialogue' | 'training' | 'victory';
 }
 
 export interface Item {
@@ -21,6 +25,7 @@ export interface Item {
 	description: string;
 	value?: number;
 	usable?: boolean;
+	type?: 'weapon' | 'potion' | 'key' | 'artifact' | 'treasure';
 }
 
 export interface Skills {
@@ -57,4 +62,18 @@ export interface GameState {
 	stealth: number;
 	
 	gameHistory: string[];
+}
+
+export interface StateUpdate {
+	health?: number;
+	magic?: number;
+	gold?: number;
+	experience?: number;
+	level?: number;
+	combat?: number;
+	magic_skill?: number;
+	diplomacy?: number;
+	stealth?: number;
+	flags?: Record<string, boolean>;
+	items?: string[];
 }

@@ -1,6 +1,6 @@
 // src/lib/gameState.ts
 import { writable, derived, get } from 'svelte/store';
-import type { GameState, Choice, Scene, Item, Skills } from './types.js';
+import type { GameState, Choice, Scene, Item, Skills } from './core/types.js';
 import { items, scenes } from './gameData.js';
 import { createSafeWrapper, GameError } from './utils/errorHandler.js';
 import { processScene } from './utils/sceneProcessor.js';
@@ -84,7 +84,7 @@ export const applyStateUpdate = createSafeWrapper((update: StateUpdate): void =>
 	});
 }, 'applyStateUpdate');
 
-export const commonUpdates = {
+const internalUpdates = {
 	basicExploration: (): StateUpdate => ({ experience: 15 }),
 	
 	skillTraining: (skill: keyof Skills, amount = 1): StateUpdate => ({ 
@@ -245,7 +245,7 @@ export const makeChoice = createSafeWrapper((choice: Choice): void => {
 	
 	updateGameStore(state => {
 		if (state.experience >= state.level * 100) {
-			applyStateUpdate(commonUpdates.levelUpBonus());
+			applyStateUpdate(internalUpdates.levelUpBonus());
 		}
 		return state;
 	});

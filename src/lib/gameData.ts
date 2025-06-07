@@ -1,27 +1,12 @@
 // src/lib/gameData.ts
-import type { Item, Scene } from './types.js';
+import type { Scene } from './core/types.js';
+import { SceneFactory } from './core/sceneFactory.js';
+import { SceneTemplates } from './core/sceneTemplates.js';
 import { items } from './data/items.js';
-import { version2Scenes } from './version2Scenes.js';
-import { 
-	basicChoice, 
-	conditionalChoice, 
-	skillChoice, 
-	goldChoice,
-	itemRequiredChoice,
-	flagRequiredChoice,
-	multiRequirementChoice,
-	createScene, 
-	createExplorationScene, 
-	createInteractionScene,
-	createVictoryScene,
-	createConversationScene,
-	createTrainingScene,
-	createSceneSet
-} from './utils/sceneHelpers.js';
-import { commonUpdates, applyStateUpdate } from './gameState.js';
+import { missingScenes } from './data/missingScenes.js';
 
 const coreScenes: Record<string, Scene> = {
-	start: createExplorationScene('start', 'The Crossroads of Destiny',
+	start: SceneFactory.exploration('start', 'The Crossroads of Destiny',
 		'You stand at a crossroads where three paths diverge. To the north lies a mysterious forest shrouded in mist. To the east, you can see smoke rising from what appears to be a small village. To the west, an ancient stone bridge spans a rushing river, leading to unknown lands.',
 		[
 			{ name: 'the mysterious forest', sceneId: 'mysteriousForest' },
@@ -31,7 +16,7 @@ const coreScenes: Record<string, Scene> = {
 		]
 	),
 
-	climbTower: createConversationScene('climbTower', 'The Dragon\'s Lair',
+	climbTower: SceneFactory.conversation('climbTower', 'The Dragon\'s Lair',
 		'You reach the top of the tower and behold Aethonaris - the great dragon whose scales shimmer between gold and deep sorrow.',
 		[
 			{ 
@@ -61,155 +46,148 @@ const coreScenes: Record<string, Scene> = {
 				text: 'Run back down the stairs immediately', 
 				nextScene: 'unlockTower'
 			}
-		]
+		],
+		{
+			experience: 25,
+			diplomacy: 2,
+			flags: { curseKnowledge: true }
+		}
 	),
 
-	cottage: createInteractionScene('cottage', 'The Hermit\'s Cottage',
-		() => {
-			const { get } = require('svelte/store');
-			const { gameStore } = require('./gameState.js');
-			return get(gameStore).hasKey ? 
-				'The cottage is old and weathered, with ivy covering most of its stone walls. You\'ve already explored inside and taken what you needed.' :
-				'The cottage is old and weathered, with ivy covering most of its stone walls. The wooden door hangs slightly ajar, creaking softly in the breeze.';
-		},
-		[
-			{ text: 'Enter the cottage', nextScene: 'insideCottage' },
-			{ text: 'Look around the outside', nextScene: 'cottageSide' },
-			{ text: 'Return to the forest', nextScene: 'mysteriousForest' }
-		]
-	),
-
-	breakCurse: createVictoryScene('breakCurse', 'The Ritual of Redemption',
+	breakCurse: SceneFactory.victory('breakCurse', 'The Ritual of Redemption',
 		'With the Blade of Transformation and your knowledge of the curse\'s true nature, you work together with Aethonaris to perform an ancient ritual. The sword glows with transformative light as you channel magic not to destroy, but to heal.',
 		'ultimate'
-	)
-};
+	),
 
-const generatedScenes = createSceneSet([
-	{
-		id: 'approachVillage',
-		title: 'The Troubled Village',
-		description: () => {
-			const { get } = require('svelte/store');
-			const { gameStore } = require('./gameState.js');
-			return get(gameStore).villageVisited ? 
-				'You return to the village. The people still look worried, but some recognize you now.' :
-				'As you approach the village, you notice something is wrong. The crops in the fields are withered, people move listlessly through the streets, and an air of despair hangs over everything.';
-		},
-		type: 'interaction',
-		config: {
-			interactions: [
-				{ text: 'Talk to the village elder', nextScene: 'villageElder' },
-				{ text: 'Visit the village market', nextScene: 'villageMarket' },
-				{ text: 'Investigate the withered crops', nextScene: 'witheredCrops' },
-				{ text: 'Look for the village inn', nextScene: 'villageInn' }
-			],
-			reward: commonUpdates.villageInteraction()
+	openWithKey: SceneFactory.scene(
+		'openWithKey',
+		'Unlocking the Tower',
+		'Your iron key fits perfectly into the ancient lock. The massive door creaks open, revealing a spiraling staircase leading upward.',
+		[
+			SceneFactory.basic('Climb the stairs to face the dragon', 'climbTower'),
+			SceneFactory.basic('Explore the tower base first', 'towerBase'),
+			SceneFactory.basic('Prepare yourself before ascending', 'towerPrepare')
+		],
+		{
+			onEnter: () => {
+				const { applyStateUpdate } = require('./gameState.js');
+				applyStateUpdate({ experience: 20 });
+			}
 		}
-	},
+	),
 
-	{
-		id: 'stoneBridge',
-		title: 'The Ancient Stone Bridge',
-		description: () => {
-			const { get } = require('svelte/store');
-			const { gameStore } = require('./gameState.js');
-			return get(gameStore).bridgeRepaired ? 
-				'The bridge stands strong once again, its stones properly aligned and secure. You can safely cross to the wizard\'s domain.' :
-				'The ancient stone bridge spans a rushing river, but you can see that several stones have fallen into the water below.';
-		},
-		type: 'interaction',
-		config: {
-			interactions: [
-				{ text: 'Cross the bridge to the wizard\'s tower', nextScene: 'wizardTower' },
-				{ text: 'Attempt to repair the bridge', nextScene: 'repairBridge' },
-				{ text: 'Try to cross the damaged bridge anyway', nextScene: 'crossDamaged' },
-				{ text: 'Look for another way across', nextScene: 'findCrossing' }
-			],
-			reward: commonUpdates.basicExploration()
+	towerBase: SceneFactory.exploration(
+		'towerBase',
+		'The Tower Base',
+		'You explore the base of the dragon\'s tower. Ancient stones are carved with mystical symbols, and you sense powerful magic all around.',
+		[
+			{ name: 'the mysterious symbols', sceneId: 'examineSymbols' },
+			{ name: 'a hidden chamber', sceneId: 'hiddenChamber' },
+			{ name: 'the spiral staircase', sceneId: 'climbTower' }
+		]
+	),
+
+	examineSymbols: SceneFactory.scene(
+		'examineSymbols',
+		'Ancient Symbols',
+		'The symbols tell the story of a great curse and hint at its possible resolution through compassion rather than violence.',
+		[SceneFactory.basic('Continue exploring', 'towerBase')],
+		{
+			onEnter: () => {
+				const { applyStateUpdate } = require('./gameState.js');
+				applyStateUpdate({ 
+					experience: 25, 
+					magic_skill: 1, 
+					flags: { curseKnowledge: true } 
+				});
+			}
 		}
-	},
+	),
 
-	{
-		id: 'mysteriousForest',
-		title: 'Edge of the Mysterious Forest',
-		description: 'The forest looms before you, ancient and mysterious. Tall trees create a natural cathedral, and you can hear the sound of flowing water somewhere in the distance.',
-		type: 'exploration',
-		config: {
-			destinations: [
-				{ name: 'deeper into the forest', sceneId: 'deepForest' },
-				{ name: 'the hermit\'s cottage', sceneId: 'cottage' },
-				{ name: 'investigate the sound of water', sceneId: 'waterfall' }
-			]
+	hiddenChamber: SceneFactory.scene(
+		'hiddenChamber',
+		'Hidden Chamber',
+		'You discover a hidden chamber containing ancient treasures and a magical sword that pulses with transformative energy.',
+		[SceneFactory.basic('Take the sword and continue', 'towerBase')],
+		{
+			onEnter: () => {
+				const { applyStateUpdate } = require('./gameState.js');
+				applyStateUpdate({ 
+					items: ['ancientSword'],
+					experience: 30,
+					flags: { hasSword: true }
+				});
+			}
 		}
-	},
+	),
 
-	{
-		id: 'practiceSkills',
-		title: 'Honing Your Abilities',
-		description: 'You take time to practice your skills, honing your abilities through careful training and meditation.',
-		type: 'training',
-		config: {
-			skill: 'combat',
-			nextScenes: ['tower', 'approachVillage', 'mysteriousForest']
+	askAboutTower: SceneFactory.conversation(
+		'askAboutTower',
+		'Learning About the Tower',
+		'The villagers speak in hushed tones about the dragon\'s tower and the curse that binds the creature within.',
+		[
+			{ text: 'Ask how to break the curse', nextScene: 'learnCurseBreaking' },
+			{ text: 'Request guidance for approaching the tower', nextScene: 'getTowerGuidance' },
+			{ text: 'Offer to face the dragon', nextScene: 'offerToHelp' }
+		],
+		{ experience: 20, diplomacy: 1, flags: { curseKnowledge: true } }
+	),
+
+	learnCurseBreaking: SceneFactory.scene(
+		'learnCurseBreaking',
+		'Knowledge of the Curse',
+		'You learn that the dragon was once human, cursed by dark magic. Breaking the curse requires understanding, not violence.',
+		[SceneFactory.basic('Thank them for the knowledge', 'start')],
+		{
+			onEnter: () => {
+				const { applyStateUpdate } = require('./gameState.js');
+				applyStateUpdate({ 
+					experience: 30, 
+					diplomacy: 2, 
+					flags: { curseKnowledge: true } 
+				});
+			}
 		}
-	},
+	),
 
-	{
-		id: 'talkDragon',
-		title: 'Attempting Communication',
-		description: 'You attempt to speak with the dragon, sensing there\'s more to this creature than meets the eye.',
-		type: 'conversation',
-		config: {
-			responses: [
-				{ text: 'Ask about the pain you sense', nextScene: 'askAboutPain' },
-				{ text: 'Offer to help break the curse', nextScene: 'offerHelp' },
-				{ text: 'Try to understand their true nature', nextScene: 'askTrueNature' },
-				{ text: 'Show compassion for their suffering', nextScene: 'showCompassion' }
-			],
-			reward: commonUpdates.dragonInteraction()
-		}
-	}
-]);
-
-const sequenceScenes = {
-	trueVictory: createVictoryScene('trueVictory', 'The Hero\'s True Victory',
-		'The ritual is complete. Where once stood a cursed dragon, now stands Aethonaris in his true form - a wise guardian spirit of the land.',
+	combatVictory: SceneFactory.victory(
+		'combatVictory',
+		'Victory Through Strength',
+		'Through superior combat skill, you defeat the dragon in honorable battle. The curse breaks as the dragon finds peace.',
 		'major'
 	),
 
-	perfectVictory: createVictoryScene('perfectVictory', 'The Perfect Redemption', 
-		'The curse is completely broken. Where once stood a tormented dragon, now stands Aethonaris in his true form - a magnificent golden dragon whose very presence radiates peace and wisdom.',
-		'ultimate'
+	magicVictory: SceneFactory.victory(
+		'magicVictory',
+		'Victory Through Magic',
+		'Your powerful magic overcomes the dragon\'s defenses. As your spell completes, the curse dissolves and the dragon is freed.',
+		'major'
 	),
 
-	dragonMentor: createTrainingScene('dragonMentor', 'Wisdom of the Ages',
-		'Aethonaris becomes your mentor, teaching you ancient secrets of magic, wisdom, and the delicate balance between all living things.',
-		'magic_skill',
-		['advancedLearning', 'guardianTraining', 'transformationMagic']
-	),
-
-	findSword: createScene('findSword', 'The Blade of Transformation',
-		'Deep within the sacred cave, you discover an ancient sword embedded in a crystal formation. As your hand touches the hilt, the blade begins to glow with a soft, transformative light.',
+	hardFought: SceneFactory.scene(
+		'hardFought',
+		'A Hard-Fought Battle',
+		'You battle valiantly but the fight is difficult. Still, your determination impresses the dragon.',
 		[
-			basicChoice('Take the sword and feel its power', 'claimSword'),
-			basicChoice('Study the sword\'s magical properties', 'studySword'),
-			basicChoice('Meditate on its purpose before claiming it', 'swordMeditation')
+			SceneFactory.basic('Continue the fight', 'fightDragon'),
+			SceneFactory.basic('Try to reason with the dragon', 'talkDragon'),
+			SceneFactory.basic('Attempt to use diplomacy', 'showCompassion')
 		],
-		() => applyStateUpdate({
-			flags: { hasSword: true },
-			items: ['ancientSword'],
-			experience: 50,
-			combat: 2,
-			magic_skill: 2
-		})
+		{
+			onEnter: () => {
+				const { applyStateUpdate } = require('./gameState.js');
+				applyStateUpdate({ experience: 20, combat: 1, health: -20 });
+			}
+		}
 	)
 };
 
-export { items };
+const generatedScenes = SceneTemplates.generateScenes(SceneTemplates.getAllTemplates());
+
 export const scenes: Record<string, Scene> = {
-    ...coreScenes,
-    ...generatedScenes,
-    ...sequenceScenes,
-    ...version2Scenes
+	...coreScenes,
+	...generatedScenes,
+	...missingScenes
 };
+
+export { items };

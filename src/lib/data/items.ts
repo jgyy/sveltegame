@@ -1,5 +1,5 @@
 // src/lib/data/items.ts
-import type { Item } from '../types.js';
+import type { Item } from '../core/types.js';
 
 export const items: Record<string, Item> = {
 	ironKey: { id: 'ironKey', name: 'Iron Key', description: 'A heavy iron key with strange symbols' },
