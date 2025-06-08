@@ -1,9 +1,10 @@
 // src/lib/data/scenes/index.ts
 import { coreScenes } from './coreScenes.js';
 import { towerScenes } from './towerScenes.js';
-import { villageScenes } from './villageScenes.js';
-import { dragonScenes } from './dragonScenes.js';
-import { explorationScenes } from './explorationScenes.js';
+import { villageScenes, additionalVillageScenes } from './villageScenes.js';
+import { dragonScenes, additionalDragonScenes } from './dragonScenes.js';
+import { explorationScenes, additionalExplorationScenes } from './explorationScenes.js';
+import { supportingScenes } from './supportingScenes.js'; 
 import { SceneTemplates } from '../../core/sceneTemplates.js';
 import { createStateUpdate } from '../stateUpdates.js';
 import type { Scene } from '../../core/types.js';
@@ -38,6 +39,28 @@ const utilityScenes: Record<string, Scene> = {
     choices: [{ text: 'Begin a new adventure', nextScene: 'start' }],
     category: 'victory',
     onEnter: createStateUpdate({ experience: 200, gold: 500, diplomacy: 5 })
+  },
+
+  peacefulEnding: {
+    id: 'peacefulEnding',
+    title: 'A Peaceful Resolution',
+    description: 'Through wisdom and compassion, you have achieved a peaceful resolution that benefits everyone involved.',
+    choices: [
+      { text: 'Reflect on your journey', nextScene: 'reflectJourney' },
+      { text: 'Plan future adventures', nextScene: 'planFuture' },
+      { text: 'Return to help others', nextScene: 'start' }
+    ],
+    category: 'victory',
+    onEnter: createStateUpdate({ experience: 200, diplomacy: 5, magic_skill: 3 })
+  },
+
+  reflectJourney: {
+    id: 'reflectJourney',
+    title: 'Reflecting on the Journey',
+    description: 'You take time to reflect on all you\'ve learned and how you\'ve grown during this adventure.',
+    choices: [{ text: 'Begin a new chapter', nextScene: 'start' }],
+    category: 'victory',
+    onEnter: createStateUpdate({ experience: 100, level: 1 })
   }
 };
 
@@ -48,6 +71,11 @@ export const allScenes: Record<string, Scene> = {
   ...villageScenes,
   ...dragonScenes,
   ...explorationScenes,
+  
+  ...additionalVillageScenes,
+  ...additionalDragonScenes,
+  ...additionalExplorationScenes,
+  ...supportingScenes,
   
   ...generatedScenes,
   
@@ -60,4 +88,36 @@ if (duplicateIds.length > 0) {
   console.warn('Duplicate scene IDs found:', duplicateIds);
 }
 
-export { coreScenes, towerScenes, villageScenes, dragonScenes, explorationScenes };
+export const scenesByCategory = {
+  core: coreScenes,
+  tower: towerScenes,
+  village: { ...villageScenes, ...additionalVillageScenes },
+  dragon: { ...dragonScenes, ...additionalDragonScenes },
+  exploration: { ...explorationScenes, ...additionalExplorationScenes },
+  supporting: supportingScenes,
+  utility: utilityScenes
+};
+
+export const sceneStatistics = {
+  totalScenes: Object.keys(allScenes).length,
+  categoryCounts: {
+    exploration: Object.values(allScenes).filter(s => s.category === 'exploration').length,
+    dialogue: Object.values(allScenes).filter(s => s.category === 'dialogue').length,
+    interaction: Object.values(allScenes).filter(s => s.category === 'interaction').length,
+    victory: Object.values(allScenes).filter(s => s.category === 'victory').length,
+    training: Object.values(allScenes).filter(s => s.category === 'training').length,
+    combat: Object.values(allScenes).filter(s => s.category === 'combat').length
+  }
+};
+
+export { 
+  coreScenes, 
+  towerScenes, 
+  villageScenes, 
+  dragonScenes, 
+  explorationScenes,
+  additionalVillageScenes,
+  additionalDragonScenes,
+  additionalExplorationScenes,
+  supportingScenes
+};
